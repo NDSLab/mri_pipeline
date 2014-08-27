@@ -1,7 +1,7 @@
 function batch_CombineSubject
 %BATCH_COMBINESUBJECT combine multi-echo images, for several subjects, by
 % submitting each subject as a different job to the torque-cluster
-subjects = 4:9;
+subjects = 1; % array of integers
 
 % human readable requirements for single job:
 memory_in_GB = 1;

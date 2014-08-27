@@ -163,9 +163,9 @@ try
                     prescanPath=[uncombinedData,'/functional/run', num2str(j),'/prescan'];
                     sourcePath= [uncombinedData,'/functional/run', num2str(j),'/dicom'];
                     targetPath= [uncombinedData,'/functional/run', num2str(j),'/nifti'];
-                    strname=[subjectName,'.session',num2str(session_nr),'.run', num2str(j)];
+                    filename_base=[subjectName,'.session',num2str(session_nr),'.run', num2str(j)];
                     
-                    ME_Combine(prescanPath,sourcePath,targetPath,echoes,volumes,strname);
+                    ME_Combine(prescanPath,sourcePath,targetPath,echoes,volumes,filename_base);
                 end
                 
                 % after this, go to:
@@ -193,29 +193,29 @@ try
                 copySeries(subjectData,outputFolder,localizerSeries,scannerName);
                 
                 % Copy combined images, text files and means
-                targetF=[combinedData,'/functional'];
                 for i=1:nRuns
+                    targetF=[combinedData,'/functional/run', num2str(i)];
                     sourceF=[uncombinedData,'/functional/run', num2str(i),'/nifti'];
-                    copyfile([sourceF,'/PAID_data/*.nii'],targetF);
-                    copyfile([sourceF,'/PAID_data/realignment.*.txt'],targetF);
+                    copyfile([sourceF,'/converted_Volumes/*.nii'],targetF);
+                    copyfile([sourceF,'/converted_Volumes/realignment.*.txt'],targetF);
                     copyfile([sourceF,'/converted_Volumes/me.combination*.nii'],[targetF,'/otherfiles']);
                 end
                 
                 % copy prescans images, text files and means
                 for i=1:nRuns
-                    sourceF=[uncombinedData,'/functional/run',num2str(i),'/prescan'];
+                    sourceF=[uncombinedData,'/functional/run',num2str(i),'/nifti/converted_Weight_Volumes'];
                     prescanF=[combinedData,'/functional/run',num2str(i),'/prescan'];
                     copyfile([sourceF,'/*'],targetF);
                     listing=dir([prescanF,'/','*.nii']);
                     fprintf('Number of files copied to %s directory: %d\n',prescanF, length(listing));
                 end
-                   
-                % Delete subject data in uncombined folder
-                if deleteUncombinedData == 1
-                    rmdir(uncombinedData,'s');
-                    fprintf('Subject data files are deleted from directory: %s\n',uncombinedData);
-                end
-                
+%                    
+%                 % Delete subject data in uncombined folder
+%                 if deleteUncombinedData == 1
+%                     rmdir(uncombinedData,'s');
+%                     fprintf('Subject data files are deleted from directory: %s\n',uncombinedData);
+%                 end
+%                 
                 % after this, go to:
                 work_missing = 0; % after this, we're done
                 
@@ -227,6 +227,11 @@ try
     
     fprintf('\nCombination of all functional images are completed: %s\n',combinedData);
     %%% end %%%%
+
+    % if reaching this point, we're done. Thus delete the checkpoint
+    if exist(checkpoint_filename,'file')
+        delete(checkpoint_filename)
+    end
     
 catch err
     cd(path_str);
@@ -234,4 +239,7 @@ catch err
     rethrow(err);
     diary off
 end
+
+                
+
 end
