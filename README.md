@@ -4,3 +4,5 @@ This are the scripts used to analyse multi-echo fRMI data in our group at the DC
 A detailed description what those scripts do and how they are to be used can be found here:
 
 http://tachikoma.petervavra.com/mri_pipeline
+
+All scripts were run/tested using Matlab 2014a. 
