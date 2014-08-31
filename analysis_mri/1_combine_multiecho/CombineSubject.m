@@ -9,8 +9,11 @@ function CombineSubject( subj_nr, session_nr, use_checkpoints )
 %                            after copying files
 %
 
-
+tic
 diary(['combineSubject_s' num2str(subj_nr) '.log'])
+
+addpath('/home/common/matlab/spm8');
+addpath(pwd); 
 
 % check whether session id was provided, if not, assume sessionId=1
 if ~exist('session_id','var')
@@ -24,7 +27,7 @@ end
 
 if use_checkpoints
     disp('using checkpoints')
-    checkpoint_filename = ['checkpoint_' num2str(subj_nr,'%03d') '_' num2str(session_nr,'%03d'),'.mat'];
+    checkpoint_filename = [pwd '/checkpoint_' num2str(subj_nr,'%03d') '_' num2str(session_nr,'%03d'),'.mat'];
     
     % load existing checkpoint-file
     if exist(checkpoint_filename,'file')
@@ -41,7 +44,7 @@ try
         work_missing = 1;
     else
         if checkpoint > 1
-            fprintf('previously, finished checkpoint %i - will continue next one',checkpoint-1);
+            fprintf('previously, finished checkpoint %i - will continue next one\n\n',checkpoint-1);
         end
     end
     
@@ -52,6 +55,7 @@ try
                 %%%% checkpoint 1
                 % create folder structure, and move images into appropriate folders
                 disp('Starting with checkpoint 1')
+                toc
                 
                 [path_str,filename, extension] = fileparts(mfilename('fullpath'));
                 pathParts = strsplit(path_str,'/');
@@ -62,14 +66,14 @@ try
                 [~, user_name] = system('whoami'); user_name=user_name(1:end-1); % username contains trailing \n
                 
                 subject_folder=[project_folder project_number '_' user_name '_' num2str(subj_nr,'%03d') '_' num2str(session_nr,'%03d') '/'];
-                subjectData=[subject_folder 'data_raw'];
+                dataRawPath=[subject_folder 'data_raw'];
                 % Name of the subject folder in uncombined and combined data folders
                 subjectName=['s' num2str(subj_nr)];
                 
                 str=sprintf('Combination of functional images started for subject %i',subj_nr);
                 disp(str);
                 
-                str=sprintf('Input Folder: %s', subjectData);
+                str=sprintf('Input Folder: %s', dataRawPath);
                 disp(str);
                 
                 %uncombined data folder for all subjects
@@ -78,7 +82,7 @@ try
                 combinedData=[subject_folder 'data_combined'];
                 
                 % load meta-data, defined in /data_raw/scan_metadata.m
-                subject_settings_file = [subjectData '/scans_metadata.m'];
+                subject_settings_file = [dataRawPath '/scans_metadata.m'];
                 if exist(subject_settings_file,'file')
                     run(subject_settings_file);
                 else
@@ -91,131 +95,115 @@ try
                 fprintf('Series corresponding to first echo of each run: %s\n', mat2str(runSeries));
                 fprintf('Number of prepscans for each run: %s\n', mat2str(prepscans));
                 fprintf('Series corresponding to first echo of each prescan: %s\n', mat2str(prescanSeries));
-                fprintf('Number of Echoes: %d\n', echoes);
-                fprintf('Number of Prescan-Volumes: %d\n', volumes);
+                fprintf('Number of Echoes: %d\n', nEchoes);
+                fprintf('Number of Prescan-Volumes: %d\n', nWeightVolumes);
                 
                 nRuns = length(runSeries);
                 % Create folder structure in uncombined data folder
                 for i=1:nRuns
-                    mkdir([uncombinedData,'/functional/run', num2str(i),'/prescan']); % will contain the prescan-volumes
-                    mkdir([uncombinedData,'/functional/run', num2str(i),'/dicom']); % will contain raw dicoms
-                    mkdir([uncombinedData,'/functional/run', num2str(i),'/nifti']); % will contain converted, combined nifti files
+                    mkdir([uncombinedData,'/functional/run', num2str(i),'/nifti']); % will contain the uncombined nifti images (incl. prescans)
                 end
-                
-                
-                % Copy prescan file series
-                disp('Copying prescan files')
-                for i=1:nRuns
-                    series=prescanSeries(i):prescanSeries(i)+echoes-1;
-                    fprintf('Copying files from series: %s\n', mat2str(series));
-                    outputFolder = [uncombinedData,'/functional/run', num2str(i),'/prescan'];
-                    copySeries(subjectData,outputFolder,series,scannerName,1,volumes); % e.g. only volumes 1:30
-                end
-                
-                % Copy functional file series
-                disp('Copying functional files')
-                for i=1:nRuns
-                    series=runSeries(i):runSeries(i)+echoes-1;
-                    fprintf('Copying files from series: %s\n', mat2str(series));
-                    nSeries = length(series);
-                    outputFolder = [uncombinedData,'/functional/run', num2str(i),'/dicom'];
-                    copySeries(subjectData,outputFolder,series,scannerName,volumes+1); % skip prescan volumes,e.g. 30:end
-                    
-                    % make sure that all echoes have the same amount of
-                    % images (delete any volumes where not all echoes
-                    % are available). Otherwise, combining the echoes won't
-                    % work..
-                    % Note: if you manually stop the scanner, you can
-                    % end up with different amounts of volumes for the
-                    % different echoes. This is why we need this..
-                    nofArray=numberFilesPerSeries(outputFolder,series, scannerName);
-                    if mean(nofArray)~=min(nofArray) % if one series contains a different amount of files
-                        filesToMove=nofArray-min(nofArray)*ones(1,nSeries); % identify how many files to move, for each series
-                        for j=1:nSeries
-                            if filesToMove(j)>0 % if too many files in this series:
-                                deleteLastFiles( outputFolder,series(j), filesToMove(1,j) );
-                                listing=dir([outputFolder,'/',createDicomFilter(series(j),scannerName)]);
-                                nf= length(listing);
-                                % delete 'from the end'
-                                for k=nf:-1:nf-filesToMove(j)+1
-                                    delete([outputFolder,'/',listing(k,1).name])
-                                end
-                                fprintf('Last %d files of Series %d deleted from %s directory.\n', lastNo ,seriesNo, outputFolder);
-                            end
-                        end
-                        % re-calculate the number of files in directory,
-                        % and log it:
-                        showMessage(outputFolder,series, scannerName);
-                    end
-                end
-                
-                fprintf('All files copied to uncombined-folder\n');
                 
                 % after this, go to:
                 checkpoint = 2;
                 
             case 2
                 %%%% checkpoint 2
+                % convert all relevant DICOMs to NifTi format and move them
+                % into the appropriate folder
+                fprintf('Converting DICOMs to NifTis\n');
+                toc
+                
+                % create list of files to be converted:
+                for iRun = nRuns:-1:1
+                    for iEcho = nEchoes:-1:1
+                        list_dicoms{iRun,iEcho} = get_dicom_names(runSeries(iRun)+(iEcho-1), dataRawPath);
+                    end
+                end
+                % enforce that all echoes have the same number of scanned
+                % volumes
+                list_dicoms = enforce_consistent_volumes(list_dicoms);
+                
+                oldFolder = pwd;
+                for iRun = nRuns:-1:1
+                    % NOTE: SPM writes newly created nifti files to
+                    % current directory, so we temporarily jump to the
+                    % 'uncombined folder'
+                    targetPath = [uncombinedData,'/functional/run', num2str(iRun),'/nifti'];
+                    mkdir(targetPath); % make sure folder exists
+                    cd(targetPath);
+                    
+                    for iEcho = nEchoes:-1:1
+                        fprintf('converting images of run %i and echo %i\n',iRun,iEcho);
+                        toc
+                        
+                        
+                        % grab headers of files
+                        hdr = spm_dicom_headers(list_dicoms{iRun,iEcho});
+                        % save echo time for combine-script
+                        TE(iEcho) = hdr{1}.EchoTime;
+                        % convert dicom to nifti
+                        list_nifti{iRun,iEcho} = spm_dicom_convert(hdr,'mosaic','flat','nii');
+                    end
+                    
+                    tmpFileList = dir([targetPath '/*.nii']);
+                    fprintf('%i nii-files now in directory: %s\n', size(tmpFileList,1), targetPath);
+                end
+                cd(oldFolder); 
+                fprintf('DICOMs converted to NifTi\n');
+                toc
+                 
+                % after this, go to:
+                checkpoint = 3 ;
+                
+                
+            case 3
+                %%%% checkpoint 3
                 % Start Multi Echo Combination -- one run at a time
                 disp('Starting with checkpoint 2')
+                toc
                 
-                for j=1:nRuns
-                    prescanPath=[uncombinedData,'/functional/run', num2str(j),'/prescan'];
-                    sourcePath= [uncombinedData,'/functional/run', num2str(j),'/dicom'];
-                    targetPath= [uncombinedData,'/functional/run', num2str(j),'/nifti'];
-                    filename_base=[subjectName,'.session',num2str(session_nr),'.run', num2str(j)];
+                for iRun=1:nRuns
+                    fprintf('combining echoes of run %i\n', iRun);
+                    toc
                     
-                    ME_Combine(prescanPath,sourcePath,targetPath,echoes,volumes,filename_base);
+                    sourcePath = [uncombinedData,'/functional/run', num2str(iRun),'/nifti'];
+                    outputPath = [combinedData,'/functional/run', num2str(iRun)];
+                    filename_base=[subjectName,'.session',num2str(session_nr),'.run', num2str(iRun)];
+                    
+                    ME_Combine(sourcePath,outputPath,nEchoes,nWeightVolumes,filename_base, TE);
                 end
                 
                 % after this, go to:
-                checkpoint = 3;
+                checkpoint = 4;
                 
-            case 3
-                %%%% Checkpoint 3:
+            case 4
+                %%%% Checkpoint 4:
                 % copy combined data, and clean up afterwards
                 disp('Starting with checkpoint 3')
+                toc
+                
                 % Create folder structure in combined data folder
                 mkdir([combinedData,'/structural/dicom']);
                 mkdir([combinedData,'/localizers']);
-                for j=1:nRuns
-                    mkdir([combinedData,'/functional/run',num2str(j),'/prepscans']);
-                end
                 
                 % Copy structural files
                 fprintf('Copying files from series: %s\n', mat2str(structuralSeries));
                 outputFolder = [combinedData,'/structural/dicom'];
-                copySeries(subjectData,outputFolder,structuralSeries,scannerName);
-                                
+                copySeries(dataRawPath,outputFolder,structuralSeries,scannerName);
+                
                 % Copy localizer file series
                 fprintf('Copying files from series: %s\n', mat2str(localizerSeries));
                 outputFolder = [combinedData,'/localizers'];
-                copySeries(subjectData,outputFolder,localizerSeries,scannerName);
+                copySeries(dataRawPath,outputFolder,localizerSeries,scannerName);
+               
                 
-                % Copy combined images, text files and means
-                for i=1:nRuns
-                    targetF=[combinedData,'/functional/run', num2str(i)];
-                    sourceF=[uncombinedData,'/functional/run', num2str(i),'/nifti'];
-                    copyfile([sourceF,'/converted_Volumes/*.nii'],targetF);
-                    copyfile([sourceF,'/converted_Volumes/realignment.*.txt'],targetF);
-                    copyfile([sourceF,'/converted_Volumes/me.combination*.nii'],[targetF,'/otherfiles']);
+                % Delete subject data in uncombined folder
+                if deleteUncombinedData == 1
+                    rmdir(uncombinedData,'s');
+                    fprintf('uncombined data-files are deleted from directory: %s\n',uncombinedData);
                 end
                 
-                % copy prescans images, text files and means
-                for i=1:nRuns
-                    sourceF=[uncombinedData,'/functional/run',num2str(i),'/nifti/converted_Weight_Volumes'];
-                    prescanF=[combinedData,'/functional/run',num2str(i),'/prescan'];
-                    copyfile([sourceF,'/*'],targetF);
-                    listing=dir([prescanF,'/','*.nii']);
-                    fprintf('Number of files copied to %s directory: %d\n',prescanF, length(listing));
-                end
-%                    
-%                 % Delete subject data in uncombined folder
-%                 if deleteUncombinedData == 1
-%                     rmdir(uncombinedData,'s');
-%                     fprintf('Subject data files are deleted from directory: %s\n',uncombinedData);
-%                 end
-%                 
                 % after this, go to:
                 work_missing = 0; % after this, we're done
                 
@@ -226,20 +214,22 @@ try
     
     
     fprintf('\nCombination of all functional images are completed: %s\n',combinedData);
+    toc
+    
     %%% end %%%%
-
+    
+    
     % if reaching this point, we're done. Thus delete the checkpoint
     if exist(checkpoint_filename,'file')
         delete(checkpoint_filename)
     end
     
 catch err
-    cd(path_str);
-    save([path_str '/' checkpoint_filename])
+    save(checkpoint_filename)
     rethrow(err);
     diary off
 end
 
-                
+
 
 end

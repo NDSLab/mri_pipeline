@@ -14,7 +14,7 @@ localizerSeries=[1 3 4];
 runSeries=[10 15 20];
 
 % Number of Echoes
-echoes=4;
+nEchoes=4;
 
 % Delete subject data in uncombined data folder after combination 
 deleteUncombinedData=1;
@@ -33,7 +33,7 @@ scannerName = scannerName{1}; % pick the one applying by setting the index
 %%% BELOW: Only needs editing if not following group-defaults
 
 % Number of Volumes
-volumes=30;
+nWeightVolumes=30;
 
 % Number of prepscans for each run, files will be moved to prepscan folders
 % These scans will not be used in your analysis, but for combining
