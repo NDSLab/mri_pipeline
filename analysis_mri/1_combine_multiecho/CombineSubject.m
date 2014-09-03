@@ -85,6 +85,13 @@ try
                 subject_settings_file = [dataRawPath '/scans_metadata.m'];
                 if exist(subject_settings_file,'file')
                     run(subject_settings_file);
+                    
+                    % and run a mini check to assert expected meta-data
+                    % format
+                    if length(nEchoes ) > 1 % ie echoes differ between runs
+                        assert(length(nEchoes) == lenth(runSeries), 'Error in scan_metadata.m: nEchoes must be a single integer or the same length as "runSeries"');
+                    end
+
                 else
                     error('Error loading subject-specific settings file. File "%s" not found',subject_settings_file);
                 end
@@ -163,6 +170,8 @@ try
                 disp('Starting with checkpoint 2')
                 toc
                 
+                
+                
                 for iRun=1:nRuns
                     fprintf('combining echoes of run %i\n', iRun);
                     toc
@@ -171,7 +180,13 @@ try
                     outputPath = [combinedData,'/functional/run', num2str(iRun)];
                     filename_base=[subjectName,'.session',num2str(session_nr),'.run', num2str(iRun)];
                     
-                    ME_Combine(sourcePath,outputPath,nEchoes,nWeightVolumes,filename_base, TE);
+                    if length(nEchoes) > 1
+                        currentNEchoes = nEchoes(iRun);
+                    else
+                        currentNEchoes = nEchoes;
+                    end
+                    
+                    ME_Combine(sourcePath,outputPath,currentNEchoes,nWeightVolumes,filename_base, TE);
                 end
                 
                 % after this, go to:

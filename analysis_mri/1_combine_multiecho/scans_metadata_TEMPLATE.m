@@ -14,7 +14,19 @@ localizerSeries=[1 3 4];
 runSeries=[10 15 20];
 
 % Number of Echoes
-nEchoes=4;
+% nEchoes can be a single integer - if you use for all runs the same number
+% of echoes; alternatively, nEchoes can be an array of the same length as
+% runSeries, with each one indicating that run's number of echoes
+% Examples:
+%   case 1: 
+%           same number of echoes for all runs:
+%           nEchoes=4;
+%   case 2:
+%           one run (e.g. resting state) as 5 echoes, and 3 runs have the
+%           same  (e.g. the task runs). With runSeries=[10 16 20 23], where
+%           series nr 10 has 5 echoes and 16-23 have 4 echoes%       
+%           nEchoes=[5 4 4 4]; 
+nEchoes=4; 
 
 % Delete subject data in uncombined data folder after combination 
 deleteUncombinedData=1;
@@ -34,6 +46,8 @@ scannerName = scannerName{1}; % pick the one applying by setting the index
 
 % Number of Volumes
 nWeightVolumes=30;
+
+
 
 % Number of prepscans for each run, files will be moved to prepscan folders
 % These scans will not be used in your analysis, but for combining
