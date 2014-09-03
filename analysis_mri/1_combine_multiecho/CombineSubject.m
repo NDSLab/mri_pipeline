@@ -88,7 +88,7 @@ try
                     
                     % and run a mini check to assert expected meta-data
                     % format
-                    if length(nEchoes ) > 1 % ie echoes differ between runs
+                    if length(nEchoes) > 1 % ie echoes differ between runs
                         assert(length(nEchoes) == lenth(runSeries), 'Error in scan_metadata.m: nEchoes must be a single integer or the same length as "runSeries"');
                     end
 
@@ -102,7 +102,7 @@ try
                 fprintf('Series corresponding to first echo of each run: %s\n', mat2str(runSeries));
                 fprintf('Number of prepscans for each run: %s\n', mat2str(prepscans));
                 fprintf('Series corresponding to first echo of each prescan: %s\n', mat2str(prescanSeries));
-                fprintf('Number of Echoes: %d\n', nEchoes);
+                fprintf('Number of Echoes: %d\n', mat2str(nEchoes));
                 fprintf('Number of Prescan-Volumes: %d\n', nWeightVolumes);
                 
                 nRuns = length(runSeries);
@@ -123,7 +123,13 @@ try
                 
                 % create list of files to be converted:
                 for iRun = nRuns:-1:1
-                    for iEcho = nEchoes:-1:1
+                    if length(nEchoes) > 1
+                        currentNEchoes = nEchoes(iRun);
+                    else
+                        currentNEchoes = nEchoes;
+                    end
+                                       
+                    for iEcho = currentNEchoes:-1:1
                         list_dicoms{iRun,iEcho} = get_dicom_names(runSeries(iRun)+(iEcho-1), dataRawPath);
                     end
                 end
@@ -140,7 +146,12 @@ try
                     mkdir(targetPath); % make sure folder exists
                     cd(targetPath);
                     
-                    for iEcho = nEchoes:-1:1
+                    if length(nEchoes) > 1
+                        currentNEchoes = nEchoes(iRun);
+                    else
+                        currentNEchoes = nEchoes;
+                    end
+                    for iEcho = currentNEchoes:-1:1
                         fprintf('converting images of run %i and echo %i\n',iRun,iEcho);
                         toc
                         
