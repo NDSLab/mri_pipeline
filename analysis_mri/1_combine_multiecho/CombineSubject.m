@@ -89,7 +89,7 @@ try
                     % and run a mini check to assert expected meta-data
                     % format
                     if length(nEchoes) > 1 % ie echoes differ between runs
-                        assert(length(nEchoes) == lenth(runSeries), 'Error in scan_metadata.m: nEchoes must be a single integer or the same length as "runSeries"');
+                        assert(length(nEchoes) == length(runSeries), 'Error in scan_metadata.m: nEchoes must be a single integer or the same length as "runSeries"');
                     end
 
                 else
@@ -100,9 +100,7 @@ try
                 fprintf('Structural File Series: %s\n', mat2str(structuralSeries));
                 fprintf('Localizer File Series: %s\n', mat2str(localizerSeries));
                 fprintf('Series corresponding to first echo of each run: %s\n', mat2str(runSeries));
-                fprintf('Number of prepscans for each run: %s\n', mat2str(prepscans));
-                fprintf('Series corresponding to first echo of each prescan: %s\n', mat2str(prescanSeries));
-                fprintf('Number of Echoes: %d\n', mat2str(nEchoes));
+                fprintf('Number of Echoes: %s\n', mat2str(nEchoes));
                 fprintf('Number of Prescan-Volumes: %d\n', nWeightVolumes);
                 
                 nRuns = length(runSeries);
@@ -157,13 +155,18 @@ try
                         
                         
                         % grab headers of files
-                        hdr = spm_dicom_headers(list_dicoms{iRun,iEcho});
+                        fileList = list_dicoms{iRun,iEcho};
+                        hdr = spm_dicom_headers(fileList);
+                        
                         % save echo time for combine-script
-                        TE(iEcho) = hdr{1}.EchoTime;
+                        TERun(iEcho) = hdr{1}.EchoTime;
                         % convert dicom to nifti
-                        list_nifti{iRun,iEcho} = spm_dicom_convert(hdr,'mosaic','flat','nii');
+                        tmp = spm_dicom_convert(hdr,'mosaic','flat','nii');
+                        
+                        list_nifti{iRun,iEcho} = tmp;
                     end
                     
+                    TE{iRun} = TERun;
                     tmpFileList = dir([targetPath '/*.nii']);
                     fprintf('%i nii-files now in directory: %s\n', size(tmpFileList,1), targetPath);
                 end
@@ -197,7 +200,7 @@ try
                         currentNEchoes = nEchoes;
                     end
                     
-                    ME_Combine(sourcePath,outputPath,currentNEchoes,nWeightVolumes,filename_base, TE);
+                    ME_Combine(sourcePath,outputPath,currentNEchoes,nWeightVolumes,filename_base, TE{iRun});
                 end
                 
                 % after this, go to:
@@ -253,7 +256,6 @@ try
 catch err
     save(checkpoint_filename)
     rethrow(err);
-    diary off
 end
 
 

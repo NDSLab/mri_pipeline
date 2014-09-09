@@ -46,17 +46,3 @@ scannerName = scannerName{1}; % pick the one applying by setting the index
 
 % Number of Volumes
 nWeightVolumes=30;
-
-
-
-% Number of prepscans for each run, files will be moved to prepscan folders
-% These scans will not be used in your analysis, but for combining
-% multi-echo data. The series numbers of where you started with 30 pulses
-% (the prescans). We decided that we need 30 pulses before every run.
-prepscans=repmat(30,1:length(runSeries));
-
-% Series corresponding to first echo of each prescan 
-% The series numbers of where you started with 30 pulses (the prescans). We
-% decided that we need 30 pulses before every run, so prescanSeries should
-% contain the same numbers as runSeries.
-prescanSeries=runSeries;
