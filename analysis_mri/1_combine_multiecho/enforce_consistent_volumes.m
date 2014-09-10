@@ -31,7 +31,7 @@ for iRun = nRuns:-1:1 % starting with largest index essentially pre-allocates me
     end
     
     
-    ind = find( nVolumes(:) > min(nVolumes) );
+    ind = find( nVolumes(:) > min(nVolumes) )';
     if ~isempty(ind)
         fprintf('Unequal amounts of volumes found. Going to skip last %i DICOMs\n', length(ind));
         for i = ind
