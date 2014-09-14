@@ -11,9 +11,14 @@ function CombineSubject( subj_nr, session_nr, use_checkpoints )
 
 tic
 diary(['combineSubject_s' num2str(subj_nr) '.log'])
+fprintf('========================================================\n');
+fprintf('========================================================\n');
+fprintf('%s - Starting combination script for subject %i\n',datestr(now),subj_nr);
+fprintf('========================================================\n');
 
+folder_start = pwd;
 addpath('/home/common/matlab/spm8');
-addpath(pwd); 
+addpath(pwd);
 
 % check whether session id was provided, if not, assume sessionId=1
 if ~exist('session_id','var')
@@ -49,13 +54,13 @@ try
     end
     
     while work_missing
+        fprintf('Current checkpoint: %d\n',checkpoint);
+        toc
+
         switch checkpoint
-            
             case 1
                 %%%% checkpoint 1
                 % create folder structure, and move images into appropriate folders
-                disp('Starting with checkpoint 1')
-                toc
                 
                 [path_str,filename, extension] = fileparts(mfilename('fullpath'));
                 pathParts = strsplit(path_str,'/');
@@ -90,8 +95,10 @@ try
                     % format
                     if length(nEchoes) > 1 % ie echoes differ between runs
                         assert(length(nEchoes) == length(runSeries), 'Error in scan_metadata.m: nEchoes must be a single integer or the same length as "runSeries"');
+                    else
+                        nEchoes = repmat(nEchoes,size(runSeries));
                     end
-
+                    
                 else
                     error('Error loading subject-specific settings file. File "%s" not found',subject_settings_file);
                 end
@@ -117,16 +124,11 @@ try
                 % convert all relevant DICOMs to NifTi format and move them
                 % into the appropriate folder
                 fprintf('Converting DICOMs to NifTis\n');
-                toc
+        
                 
                 % create list of files to be converted:
                 for iRun = nRuns:-1:1
-                    if length(nEchoes) > 1
-                        currentNEchoes = nEchoes(iRun);
-                    else
-                        currentNEchoes = nEchoes;
-                    end
-                                       
+                    currentNEchoes = nEchoes(iRun);
                     for iEcho = currentNEchoes:-1:1
                         list_dicoms{iRun,iEcho} = get_dicom_names(runSeries(iRun)+(iEcho-1), dataRawPath);
                     end
@@ -144,11 +146,7 @@ try
                     mkdir(targetPath); % make sure folder exists
                     cd(targetPath);
                     
-                    if length(nEchoes) > 1
-                        currentNEchoes = nEchoes(iRun);
-                    else
-                        currentNEchoes = nEchoes;
-                    end
+                    currentNEchoes = nEchoes(iRun);
                     for iEcho = currentNEchoes:-1:1
                         fprintf('converting images of run %i and echo %i\n',iRun,iEcho);
                         toc
@@ -170,20 +168,133 @@ try
                     tmpFileList = dir([targetPath '/*.nii']);
                     fprintf('%i nii-files now in directory: %s\n', size(tmpFileList,1), targetPath);
                 end
-                cd(oldFolder); 
+                cd(oldFolder);
                 fprintf('DICOMs converted to NifTi\n');
                 toc
-                 
+                
                 % after this, go to:
-                checkpoint = 3 ;
+                checkpoint = 3.1 ;
                 
                 
-            case 3
-                %%%% checkpoint 3
-                % Start Multi Echo Combination -- one run at a time
-                disp('Starting with checkpoint 2')
+            case 3.1
+                %%%% checkpoint 3.1
+                % realign and reslice all runs to first one
+                % Then, in the next step, we don't need to realign any
+                % more
+                fprintf('Realigning functional runs\n');
+                
+                % collect all files from each run into cell array
+                filesAll = {};
+                for iRun = 1:nRuns
+                    sourcePath = [uncombinedData,'/functional/run', num2str(iRun),'/nifti'];
+                    
+                    %%% collect all nifti files, and sort by echo
+                    filesTemp = dir([sourcePath '/f*01.nii']); % just grab first echo... and be sure it's one of the uncombined ,ie starting with an 'f'
+                    files = char(zeros(length(filesTemp),length(sourcePath) + length(filesTemp(1).name)+2,max(nEchoes))); % ... to initialize char-matrix
+                    for iEcho = 1:nEchoes(iRun)
+                        filesTemp = dir([sourcePath '/f*0' int2str(iEcho) '.nii']); % grab all uncombined echoes
+                        for i=1:size(filesTemp,1)
+                            tmp = cat(2, sourcePath,'/', filesTemp(i).name);
+                            files(i,1:length(tmp),iEcho) = tmp;
+                        end
+                    end
+                    filesAll{iRun} = files;
+                    nFilesRun(iRun) = size(files,1); % save number of images per run for splitting realignment parameter file
+                end
+                % convert cell array into large matrix
+                files = concatFiles(filesAll);
+                
+                %%% Realignment %%
+                % first handle first echo:
+                fprintf('Realignment started\n');
                 toc
                 
+                % realing first echo
+                spm_realign(files(:,:,1));
+                
+                fprintf('Realignment of first echo done\n');
+                % Transformation matrices of all volumes of all echoes
+                % (except first echo) are changed to the matrix of first echo,
+                % thus, realigned.
+                for i=1:size(files,1)
+                    VPrescan{1} = spm_get_space(files(i,:,1));
+                    for j=2:nEchoes
+                        % realigned using spm_get_space
+                        spm_get_space(files(i,:,j),VPrescan{1});
+                    end
+                end
+                
+                fprintf('Realignment finished!\n')
+                toc
+                
+                %%% reslice all volumes
+                fprintf('Reslicing started\n')
+                % reslice all images, relative to first prescan volume (i.e. the same one
+                % as the realignment is relative to)
+                tmpFiles = reshape_along_3rd(files); % _reslice needs a 2d matric of names
+                spm_reslice(tmpFiles);
+                
+                fprintf('Reslicing is finished!\n')
+                toc
+                
+                checkpoint = 3.2;
+                
+            case 3.2
+                 
+                fprintf('Processing realignment parameter file\n');
+                %%% split realignment parameter file into appropriate pieces
+                % i.e. one per run, and removing the prescans into
+                % dedicated file
+                % since we have resliced and realigned relative to first prescan, we have
+                % now more the realignment parameters for all volumes in header. Let's
+                % split them into header_prescans and header_function, and move them to the
+                % target folder
+                sourcePath = [uncombinedData,'/functional/run1/nifti'];
+                tmpFolder = pwd;
+                cd(sourcePath);
+                listing=dir('rp*.txt');
+                file_rp = listing(1,1).name;
+                copyfile(file_rp, [file_rp '.backup']); % save backup copy.. 
+                
+                for iRun = 1:nRuns
+                    outputPath = [combinedData,'/functional/run', num2str(iRun)];
+                    filename_base=[subjectName,'.session',num2str(session_nr),'.run', num2str(iRun)];
+                    
+                    file_wholeRun =   ['realignment.parameters.all.' filename_base '.txt'];
+                    file_prescans =   ['realignment.parameters.prescans.',filename_base,'.txt'];
+                    file_functional = ['realignment.parameters.',filename_base,'.txt'];
+                    removeFileIfExists(file_functional);
+                    removeFileIfExists(file_prescans);
+                    removeFileIfExists(file_wholeRun);
+                    % first, take current run's realignment parameter part
+                    move_first_nLines_to_otherFile(file_rp, file_wholeRun, nFilesRun(iRun));
+                    % copy this into file_functional
+                    copyfile(file_wholeRun, file_functional);
+                    % and move first x lines into file_prescans
+                    move_first_nLines_to_otherFile(file_functional,file_prescans,nWeightVolumes);
+                    
+                    % and move files to output folder:
+                    fileMoveForLinux(sourcePath, outputPath, file_wholeRun, 100);
+                    fileMoveForLinux(sourcePath, outputPath, file_prescans ,100);
+                    fileMoveForLinux(sourcePath, outputPath, file_functional ,100);
+                end
+                                
+                
+                % move combination header file into folder of functional
+                % runs
+                listing=dir('mean*.nii');
+                copyfile(listing(1,1).name,['me.combination.mean.',filename_base,'.nii']);
+                fileMoveForLinux(sourcePath, [combinedData '/functional'], ['me.combination.mean.',filename_base,'.nii'] ,100);
+                
+                cd(tmpFolder);
+                
+                % after this, go to:
+                checkpoint = 3.3;
+                
+            case 3.3
+                %%%% checkpoint 3.2
+                % Start Multi Echo Combination -- one run at a time
+                fprintf('Starting combination of echoes\n');
                 
                 
                 for iRun=1:nRuns
@@ -194,14 +305,10 @@ try
                     outputPath = [combinedData,'/functional/run', num2str(iRun)];
                     filename_base=[subjectName,'.session',num2str(session_nr),'.run', num2str(iRun)];
                     
-                    if length(nEchoes) > 1
-                        currentNEchoes = nEchoes(iRun);
-                    else
-                        currentNEchoes = nEchoes;
-                    end
-                    
+                    currentNEchoes = nEchoes(iRun);
                     ME_Combine(sourcePath,outputPath,currentNEchoes,nWeightVolumes,filename_base, TE{iRun});
                 end
+                fprintf('All echoes combined\n');
                 
                 % after this, go to:
                 checkpoint = 4;
@@ -209,9 +316,8 @@ try
             case 4
                 %%%% Checkpoint 4:
                 % copy combined data, and clean up afterwards
-                disp('Starting with checkpoint 3')
-                toc
-                
+                fprintf('cleaning up file structure\n');
+                                
                 % Create folder structure in combined data folder
                 mkdir([combinedData,'/structural/dicom']);
                 mkdir([combinedData,'/localizers']);
@@ -225,7 +331,6 @@ try
                 fprintf('Copying files from series: %s\n', mat2str(localizerSeries));
                 outputFolder = [combinedData,'/localizers'];
                 copySeries(dataRawPath,outputFolder,localizerSeries,scannerName);
-               
                 
                 % Delete subject data in uncombined folder
                 if deleteUncombinedData == 1
@@ -239,14 +344,17 @@ try
             otherwise
                 fprintf('unknown checkpoint: %i\n',checkpoint);
         end
+        
+        save(checkpoint_filename)
     end
     
-    
+    fprintf('========================================================\n');
     fprintf('\nCombination of all functional images are completed: %s\n',combinedData);
+    fprintf('========================================================\n');
     toc
     
     %%% end %%%%
-    
+    cd(folder_start) 
     
     % if reaching this point, we're done. Thus delete the checkpoint
     if exist(checkpoint_filename,'file')
@@ -255,8 +363,10 @@ try
     
 catch err
     save(checkpoint_filename)
+    cd(folder_start)
     rethrow(err);
 end
+
 
 
 
