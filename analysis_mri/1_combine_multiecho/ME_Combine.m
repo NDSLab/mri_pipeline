@@ -11,10 +11,6 @@ fprintf('nEchoes: %d\n', nEchoes);
 fprintf('nWeightVolumes: %d\n', numberOfWeightVolumes);
 toc
 
-%% clear output folder %%
-delete([targetPath '/*']);
-fprintf('Output folder is cleared!\n')
-toc
 
 %% collect all nifti files, and sort by echo
 filesTemp = dir([sourcePath '/rf*01.nii']); % just grab first echo... and be sure it's one of the uncombined ,ie starting with an 'f'
