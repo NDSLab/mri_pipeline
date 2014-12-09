@@ -209,8 +209,9 @@ try
                 fprintf('Realignment started\n');
                 toc
                 
+                flags.rtm = 1; % use 2-pass procedure
                 % realing first echo
-                spm_realign(files(:,:,1));
+                spm_realign(files(:,:,1),flags);
                 
                 fprintf('Realignment of first echo done\n');
                 % Transformation matrices of all volumes of all echoes
