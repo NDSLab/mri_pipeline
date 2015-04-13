@@ -1,8 +1,8 @@
 mri_pipeline
 ============
 This are the scripts used to analyse multi-echo fRMI data in our group at the DCCN. 
-A detailed description what those scripts do and how they are to be used can be found here:
+A detailed description what those scripts do and how they are to be used can be found here on the wiki:
 
-http://tachikoma.petervavra.com/mri_pipeline
+http://pvavra.github.io/mri_pipeline
 
-All scripts were run/tested using Matlab 2014a. 
+
