@@ -10,4 +10,4 @@ This step converts the images into Nifti format, realigns and reslices using SPM
 
 
 ## (standard) SPM preprocessing
-This implements [our group's](http://www.decisionneurosciencelab.com) standard preprocessing pipeline ([more details](pages/preprocessing.md)
+This implements [our group's](http://www.decisionneurosciencelab.com) standard preprocessing pipeline ([more details](pages/preprocessing.md)). 
