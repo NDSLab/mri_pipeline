@@ -8,8 +8,14 @@ classdef CombineWrapper < handle
     % http://stackoverflow.comn/questions/8086765/why-do-properties-not-take-on-a-new-value-from-class-method 
     % 
     % Example usage: 
-    %   combiner = CombineWrapper('dataDir','/path/to/raw/data','runSeries',[7 11 15],'nEchoes',4,'scannerName','Skyra');
-    %   combiner.DoMagic(); % runs all steps
+    % 
+    % % create wrapper instance
+    % wrapper = CombineWrapper(   'dataDir',~/repos/mri_pipeline/test_data/3014030.01_petvav_026_001/data_raw,...
+    %                             'workingDir',/data/test_CombineWrapper/test1,...
+    %                             'runSeries',[7 11 15],...
+    %                             'nEchoes', 4);
+    % % runs all steps
+    % combiner.DoMagic(); 
     % 
     
     properties
@@ -22,19 +28,16 @@ classdef CombineWrapper < handle
         % but can also be provided as a scalar (e.g. 4), assuming that all runs have same number of echoes
         nEchoes;
         
-        % The following is used to identify all dicom files, coming from a
-        % scanner.
-        % Valid options: {'Skyra','Avanto','Trio'}
-        % pick the one applying by setting the index
-        scannerName;
-        
         % raw data folder
         dataDir;
 
         % output folder - where combined data should be written to
         outputDir; % if not set, will be in a parallel folder to the raw data, ie '../data_combined' relative to 
 
-        % working folder - all temporary files will be written there
+        % working folder for the combiner - all temporary files will be written there
+        % these are especially: nifti-converted images (ie one nifti per one dicom) and 
+        % realigned-and-resliced images (also on per dicom)
+        % If you want to 'deactivate' the working directory, simply set workingDir to outputDir
         workingDir;
 
         % combiner - class CombineEcho instance
@@ -78,11 +81,15 @@ classdef CombineWrapper < handle
         % run all combining sub-parts in one go
         % 
         % ------------------------------------------------------------------
+            t=tic;
             fprintf('Wrapper doing its magic\n');
             self.AssertReadyToGo();
             self.LoadAllDicoms();
             self.CreateCombiner();
             self.RunCombining();
+            self.ArrangeCombinedFiles();
+            fprintf('Wrapper magic done in:\n');
+            toc(t)
         end
 
         function AssertReadyToGo(self)
@@ -155,6 +162,36 @@ classdef CombineWrapper < handle
             self.combiner.DoMagic();
         end
 
+        function ArrangeCombinedFiles(self)
+        % ------------------------------------------------------------------
+        % 
+        % Move combined images into separate folders
+        % CRUCIALLY, this function assumes that 'crf*-0015-*.nii' will correctly
+        % filter files of runSeries number 15. 
+        % 
+        % ------------------------------------------------------------------
+        % NOTE: this should only be run after RunCombining()... 
+        %
+        % By (SPM-)convention, filenames look something like this:
+        % crf141117110916STD131221107521945416-0015-00301-000301-01.nii
+        % where the first number after the minus indicates the runSeries number
+        % (the prefix 'c' is added by the CombineEcho(), to indicate 'combined').
+        % Importantly, the CombineEcho script keeps the runSeries of the first echo
+        % for the name of the combined image. We'll use this to sort files into
+        % subfolders.
+
+            for iRun = 1:length(self.runSeries)
+                % create subfolders 'run1', 'run2', etc.
+                mkdir(sprintf('%s/run%u' , self.outputDir,iRun))
+
+                % move files to new folder
+                unix(sprintf('mv %s/crf*-%04.0f-*.nii %s/run%u/.',self.outputDir,self.runSeries(iRun),self.outputDir,iRun));
+
+                % move motion parameter file to new folder
+                unix(sprintf('mv %s/rp_run%u.txt %s/run%u/.',self.outputDir,iRun,self.outputDir,iRun));
+            end
+        end
+
         function files=ListAllFiles(self)
         % ------------------------------------------------------------------
         % 
@@ -165,6 +202,8 @@ classdef CombineWrapper < handle
             files = self.filenamesDicom();
             disp(files)
         end
+
+
 
 
     end
