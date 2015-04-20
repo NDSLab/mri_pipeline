@@ -1,29 +1,25 @@
 classdef CombineWrapper < handle
-    %CombineEcho Combines mutli-echo data using PAID weighting
+    %CombineWrapper Combines mutli-echo data using PAID weighting
     % 
     %   for detailed description, see wiki on github
     % 
     %   Importantly, this is a handle-class, and not a value class; 
-    % this changes the default, see for more details: 
-    % http://stackoverflow.com/questions/8086765/why-do-properties-not-take-on-a-new-value-from-class-method 
+    % this changes the default behaviour (eg. copying the object), see for more details: 
+    % http://stackoverflow.comn/questions/8086765/why-do-properties-not-take-on-a-new-value-from-class-method 
     % 
-    % Usage: 
-    %   combiner = CombineEcho('runSeries',[7 11 15],'nEchoes',[4 4 4],'structuralSeries',19,'scannerName','Skyra');
-    %   combiner.Run(); % runs all steps
+    % Example usage: 
+    %   combiner = CombineWrapper('dataDir','/path/to/raw/data','runSeries',[7 11 15],'nEchoes',4,'scannerName','Skyra');
+    %   combiner.DoMagic(); % runs all steps
     % 
     
     properties
-        %Series of Structural files
-        % The series number of your structural scans (see Print List). Look
-        % for the series number of t1_mprage_sag (192 scans).
-        structuralSeries; 
-
         %Series corresponding to first echo of each run
         % The series numbers of where each run starts. This should be
         % consistent with expArray
         runSeries;
         
-        %Number of Echoes - should be array of length=nRuns,e.g. [4 4 4]
+        %Number of Echoes - should be array of length=nRuns, e.g. [4 4 4] if having three runs
+        % but can also be provided as a scalar (e.g. 4), assuming that all runs have same number of echoes
         nEchoes;
         
         % The following is used to identify all dicom files, coming from a
@@ -32,29 +28,29 @@ classdef CombineWrapper < handle
         % pick the one applying by setting the index
         scannerName;
         
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        %%% BELOW: Only needs editing if not following group-defaults
-        
-        %Number of Volumes used for calculating weights
-        nWeightVolumes=30;
+        % raw data folder
+        dataDir;
 
-        %Number of prepscans for each run, files will be moved to prepscan folders
-        % These scans will not be used in your analysis, but for combining
-        % multi-echo data. The series numbers of where you started with 30 pulses
-        % (the prescans). We decided that we need 30 pulses before every run.
-        prepscans%=repmat(30,length(runSeries),1); % default will be set by constructor
-        
-        %Series corresponding to first echo of each prescan
-        % The series numbers of where you started with 30 pulses (the prescans). We
-        % decided that we need 30 pulses before every run, so prescanSeries should
-        % contain the same numbers as runSeries.
-        prescanSeries%=runSeries; % default will be set by constructor
-                
+        % output folder - where combined data should be written to
+        outputDir; % if not set, will be in a parallel folder to the raw data, ie '../data_combined' relative to 
+
+        % working folder - all temporary files will be written there
+        workingDir;
+
+        % combiner - class CombineEcho instance
+        % this can be used to call sub-steps of the combineEcho instance manually via the wrapper instance
+        combiner;
     end
 
-    properties(Access=private)
-        % state variable
-        state=1; % keeps track of progress of combining
+    properties(Access=protected)
+        % These variables will be set during the running of the main Run()-function
+
+        % cell array - holds ALL filenames, split by runs 
+        filenamesDicom = {}; 
+
+        % cell array - holds ONLY PRESCANs filenames. 
+        % Note: these should also be part of the 'filenamesDicom'
+        filenamesPrescanDicom = {};
     end
     
     methods
@@ -62,7 +58,7 @@ classdef CombineWrapper < handle
         function self=CombineWrapper(varargin)
         % ------------------------------------------------------------------
         % 
-        % Construction - CombineEcho
+        % Construction - CombineWrapper
         % 
         % ------------------------------------------------------------------
         
@@ -74,97 +70,198 @@ classdef CombineWrapper < handle
                     warning('Unrecognized option: %s.',varargin{i});
                 end
             end
-            
-            % by now, structuralSeries, runSeries, nEchoes, and scannerName 
-            % should be set - verify that, if not report all errors at once.
-            msg = '';
-            someError = false; 
-            if isempty(self.runSeries)
-                someError = true;
-                msg = [msg 'runSeries needs to be set when creating a CombineEcho instance\n'];
-            end
-            if isempty(self.scannerName)
-                someError = true;
-                msg = [msg 'scannerName needs to be set when creating a CombineEcho instance\n'];
-            end
-            if isempty(self.structuralSeries)
-                someError = true;
-                msg = [msg 'structuralSeries needs to be set when creating a CombineEcho instance\n'];
-            end
-            if isempty(self.nEchoes)
-                someError = true;
-                msg = [msg 'nEchoes needs to be set when creating a CombineEcho instance\n'];  
-            end
-            if someError 
-                error('CombineEcho:Constructor',msg);
-                %disp(msg)
-            end
-
-            % apply defaults based on properties which may be set via constructor, so set them only if not yet set
-            if isempty(self.prepscans)
-                self.prepscans=repmat(30,length(self.runSeries),1); 
-            end
-            if isempty(self.prescanSeries)
-                self.prescanSeries=self.runSeries;
-            end
         end
 
-        function self=Run(self)
+        function DoMagic(self)
         % ------------------------------------------------------------------
         % 
         % run all combining sub-parts in one go
         % 
         % ------------------------------------------------------------------
-            self.ConvertDicoms();
-            self.Realign();
-            self.Reslice();
-            self.calculateWeights();
-            self.applyWeights();
+            fprintf('Wrapper doing its magic\n');
+            self.AssertReadyToGo();
+            self.LoadAllDicoms();
+            self.CreateCombiner();
+            self.RunCombining();
         end
 
-        function self=ConvertDicoms(self)
+        function AssertReadyToGo(self)
         % ------------------------------------------------------------------
         % 
-        % converts DICOM images to nifti format
+        % Assert all necessary properties are set
         % 
         % ------------------------------------------------------------------
-            %some code
+            if isempty(self.outputDir)
+                self.outputDir = [self.dataDir '/../data_combined'];
+            end
+
+            % test whether all public properties non-empty
+            % exception: combiner instance - this will be set using all the other properties
+            ignoreProperties = {'combiner'};
+            allProperties = fieldnames(self);
+            checkProperties = setxor(allProperties,ignoreProperties); % all except the ones on the ingore list
+            msg = ''; e = false;
+            for i = 1:length(checkProperties)
+                if isempty(self.(checkProperties{i}))
+                    msg = [msg checkProperties{i} ' is empty. You must set this property to use ' class(self) '\n'];
+                    e = true;
+                end
+            end
+            assert(~e,msg);
         end
 
-        function self=Realign(self)
+        function LoadAllDicoms(self)
         % ------------------------------------------------------------------
         % 
-        % realigns all images, per runs (double pass) and then across runs
+        % Based on assumed folder structure, fill up filenamesDicom
         % 
         % ------------------------------------------------------------------
-            %some code
+        % using this public method to NOT expose the two underlying function 
+        % to avoid forgetting the second one when not using 'DoMagic' interface
+            % load ALL dicoms related to specified runSeries numbers
+            self.GetAllDicomNames(); 
+
+            % enforce that all echoes have the same number of scanned volumes
+            self.EnforceConsistentVolumes();
+        end
+        
+        function CreateCombiner(self)
+        % ------------------------------------------------------------------
+        % 
+        % Create CombineEchoe instance
+        % 
+        % ------------------------------------------------------------------
+            % nEchoes should be a vector of same length as runSeries, but can be provided as scalar for convenience
+            if length(self.nEchoes) == 1
+                self.nEchoes = repmat(self.nEchoes, size(self.runSeries));
+            end
+
+            % create combiner object
+            % this call assumes that 30 first pulses of each run will be used to calculate the combining weights
+            self.combiner = CombineEcho('filenamesDicom',   self.filenamesDicom,...
+                                        'nEchoes',          self.nEchoes,...
+                                        'outputDir',        self.outputDir,...
+                                        'workingDir',       self.workingDir ...
+                                       );
         end
 
-        function self=Reslice(self)
+        function RunCombining(self)
         % ------------------------------------------------------------------
         % 
-        % reslices images
+        % Run all steps of the combiner-object in one go
         % 
-        % ------------------------------------------------------------------
-            %some code
+        % -------------------------------------------------------------
+            % run all combining steps
+            self.combiner.DoMagic();
         end
 
-        function self=CalculateWeights(self)
+        function files=ListAllFiles(self)
         % ------------------------------------------------------------------
         % 
-        % calculates weights
+        % Return and display all DICOM files, ie the content of 'filenamesDicom'
         % 
         % ------------------------------------------------------------------
-            %some code
+        % this function is mostly for debugging
+            files = self.filenamesDicom();
+            disp(files)
         end
 
-        function self=applyWeights(self)
+
+    end
+
+    % ------------------------------------------------------------------------------------------------------------
+    % ------------------------------------------------------------------------------------------------------------
+    % Protected Methods
+    % ------------------------------------------------------------------------------------------------------------
+    % ------------------------------------------------------------------------------------------------------------
+
+    methods(Access=protected)
+
+        function GetAllDicomNames(self)
         % ------------------------------------------------------------------
         % 
-        % applies weights to all images
+        % for each Run, load all DICOM filenames
         % 
         % ------------------------------------------------------------------
-            %some code
+
+        nRuns = length(self.runSeries);
+            % if nEchoes given as scalar, it means that all runs had same number of echoes
+            if length(self.nEchoes) == 1
+                self.nEchoes = repmat(self.nEchoes, size(self.runSeries));
+            end
+
+            % load list of files for each run and echo, one at a time
+            for iRun = nRuns:-1:1
+                currentNEchoes = self.nEchoes(iRun);
+                for iEcho = currentNEchoes:-1:1
+                    % each echo has its own runSeries number. 
+                    currentSeriesNumber = self.runSeries(iRun)+(iEcho-1);
+                    
+                    allFiles = dir([self.dataDir '/*.IMA']);
+                     % use first DICOM to extract string-before-echo-number
+                    firstDicomInfo = dicominfo([self.dataDir '/' allFiles(1).name]);
+                    expDate = firstDicomInfo.InstanceCreationDate;
+                    expDate = [expDate(1:4) '.' expDate(5:6) '.' expDate(7:8)];
+                    stringBeforeEchoNumber = allFiles(3).name(strfind(allFiles(3).name,expDate)-16:strfind(allFiles(3).name,expDate)-12); % e.g. 'SKYRA'
+
+                    % based on that info, select all DICOMs 
+                    filesTemp = dir([self.dataDir '/*' stringBeforeEchoNumber '.' sprintf('%.4d', currentSeriesNumber) '*.IMA']);
+                    fileNames = char(zeros(length(filesTemp),length(filesTemp(1).name)+2));
+                    for i=1:size(fileNames ,1)
+                        fileNames (i,1:length(filesTemp(i).name)) = filesTemp(i).name;
+                    end
+                    a = repmat([self.dataDir, '/'], size(fileNames,1),1);
+                    self.filenamesDicom{iRun,iEcho}  = cat(2, a , fileNames);
+
+                end
+            end
+           
         end
+     
+
+
+
+        function EnforceConsistentVolumes(self)
+        % ------------------------------------------------------------------
+        % 
+        % Enforce same number of volumes for each echo
+        % 
+        % ------------------------------------------------------------------
+        % make sure that all echoes have the same amount of images (delete any
+        % volumes names from the list where not all echoes are available).
+        % Otherwise, combining the echoes won't work.
+        % 
+        % NOTE: if you manually stop the scanner, you can end up with different
+        % amounts of volumes for the different echoes. This is why we need this.. 
+
+
+            nRuns = length(self.runSeries);
+
+            for iRun = nRuns:-1:1 % starting with largest index essentially pre-allocates memory :)
+                for iEcho = self.nEchoes(iRun):-1:1
+                   tmp = self.filenamesDicom{iRun,iEcho}; % get list of files (char-matrix)
+                   for iLine = size(tmp,1):-1:1
+                       if length(tmp(iLine,:)) > 0 
+                           break;
+                       end
+                   end
+                   nVolumes(iEcho) = iLine;
+                end
+
+
+                ind = find( nVolumes(:) > min(nVolumes) )';
+                if ~isempty(ind)
+                    fprintf('Unequal amounts of volumes found. Going to skip last %i DICOMs\n', length(ind));
+                    for i = ind
+                        % get  list of files
+                        tmp = self.filenamesDicom{iRun,i};
+                        nTooMany = nVolumes(i) - min(nVolumes);
+                        self.filenamesDicom{iRun,i} = tmp(1:(end-nTooMany),:);
+                    end
+                end
+            end
+        end
+    end
+
 end
 
