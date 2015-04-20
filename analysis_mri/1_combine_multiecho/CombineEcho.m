@@ -42,10 +42,10 @@ classdef CombineEcho < handle
         % per default, only final output will be copied to the 'outputDir'
         keepIntermediaryFiles = false;
 
-        % T_Echo - will be filled up by ConvertDicoms();
+        % T_Echo - will be filled up by ConvertDicoms() - cell array;
         TE;
 
-        % filenames after conversion to nifti format
+        % filenames after conversion to nifti format - cell array
         filenamesNifti;
 
         % combining weigts - cell array
@@ -87,10 +87,10 @@ classdef CombineEcho < handle
             fprintf('Combiner doing its magic\n');
             self.AssertReadyToGo();
             self.ConvertDicoms();
-            % self.SpikeDetection();
+            self.SpikeDetection(); % not implemented yet
             self.Realign();
+            self.SplitRealignmentParameters();
             self.Reslice();
-            self.GetTE();
             self.CalculateWeights();
             self.ApplyWeights();
             self.CopyFilesToOutputDir();
@@ -104,7 +104,7 @@ classdef CombineEcho < handle
         % ------------------------------------------------------------------
             % test whether all public properties non-empty
             % exception: TE and filenamesNift - these will be set by running ConvertDicoms()
-            % exception: weights - will be calculated by CalculateWeights()
+            % exception: weights - will be set by CalculateWeights()
             ignoreProperties = {'TE','filenamesNifti','weights'};
             allProperties = fieldnames(self);
             checkProperties = setxor(allProperties,ignoreProperties); % all except the ones on the ingore list
@@ -133,11 +133,11 @@ classdef CombineEcho < handle
             % 'workingDir folder'
             
             oldFolder = pwd;
-            for iRun = nRuns:-1:1
-                targetPath = [self.workingDir,'/run', num2str(iRun),''];
-                mkdir(targetPath); % make sure folder exists
-                cd(targetPath);
+            mkdir(self.workingDir); % make sure folder exists
+            cd(self.workingDir);
                 
+            % combine each run separately
+            for iRun=nRuns:-1:1
                 currentNEchoes =self.nEchoes(iRun);
                 for iEcho = currentNEchoes:-1:1
                     % grab headers of files
@@ -147,7 +147,6 @@ classdef CombineEcho < handle
                     tmp = spm_dicom_convert(hdr,'mosaic','flat','nii');
                     self.filenamesNifti{iRun,iEcho} = tmp.files;
                 end
-                self.TE{iRun} = TERun;
             end
             cd(oldFolder);
          
@@ -164,7 +163,7 @@ classdef CombineEcho < handle
         % 
         % ------------------------------------------------------------------
             %%% TODO: add spike detection
-            
+            fprintf('CombineEchoe: spike detection not yet implemented\n');
         end
 
         
@@ -205,13 +204,46 @@ classdef CombineEcho < handle
                 end
             end
 
-            % TODO: split realignment parameters into runs
-            self.e
-
             fprintf('Realignment done in:\n');  
             toc(t)
-
         end
+
+        function SplitRealignmentParameters(self)
+        % ------------------------------------------------------------------
+        % 
+        % When realigning all runs in one go, only one rp_*.txt file is
+        % written. This function splits it into to appropriate number of files
+        % 
+        % ------------------------------------------------------------------
+            nRuns = size(self.filenamesDicom,1);
+
+            % first, make backup copy of rp_*.txt file
+            unix(sprintf('mv %s/rp_f*.txt %s/rp_allRuns.txt',self.workingDir,self.workingDir));
+
+            % open file with all parameters
+            fileAll = sprintf('%s/rp_allRuns.txt',self.workingDir);
+            f_orig  = fopen(fileAll,'r');
+
+            for iRun=1:nRuns
+                % open output file for current run
+                fileOut = sprintf('%s/rp_run%i.txt',self.workingDir,iRun);
+                f_out = fopen(fileOut,'w');
+
+                % determine length of current run
+                nLinesToCopy = size(self.filenamesDicom{iRun,1},1); 
+
+                % get nLinesToCopy and write the to f_out file
+                for i=1:nLinesToCopy
+                    textline = fgetl(f_orig); % this automatically starts off from last position
+                    fprintf(f_out, '%s\n', textline);
+                end
+
+                % close file with extracted lines
+                fclose(f_out);
+            end
+            fclose(f_orig);
+        end
+
 
         function Reslice(self)
         % ------------------------------------------------------------------
@@ -260,7 +292,6 @@ classdef CombineEcho < handle
         % 
         % ------------------------------------------------------------------
             t = tic;
-            
             % get list of all prescans
             % get first nWeightVolumes from each run and echo, and prepend an 'r' for spm-resliced
             nRuns = size(self.filenamesDicom,1);
@@ -274,6 +305,9 @@ classdef CombineEcho < handle
                 filesAllRuns{iRun} = filesEcho;
             end
 
+            % load echo times
+            self.GetTE();
+            
             % calculate weights for each run independently
             for iRun = 1:nRuns
                 files = filesAllRuns{iRun};
@@ -312,7 +346,7 @@ classdef CombineEcho < handle
             toc(t);
         end
 
-        function applyWeights(self)
+        function ApplyWeights(self)
         % ------------------------------------------------------------------
         % 
         % Apply weights to all images, including prescans
@@ -379,18 +413,35 @@ classdef CombineEcho < handle
         % Copy final files from working dir to output dir
         % 
         % ------------------------------------------------------------------
-            if self.keepIntermediaryFiles
-                % keep all intermediary files, ie copy whole working directory
-                % content to outputDir
-                unix(sprintf('cp %s/* %s',self.workingDir,self.outputDir);
-            else
-                % TODO: move only 'cr*.nii' files, while maintainig folder structure
+            t=tic;
+            % only need to copy files it outputDir ~= workingDir
+            if ~strcmp(self.workingDir,self.outputDir)
+                % make sure output directory exists
+                mkdir(self.outputDir)
 
+                if self.keepIntermediaryFiles
+                    % keep all intermediary files, ie copy whole working directory
+                    % content to outputDir
+                    unix(sprintf('cp %s/* %s/.',self.workingDir,self.outputDir));
+                else
+                    % copy only final, combined images, the mean image, 
+                    % and the realignment parameter files
+                    
+                    % copy 'cr*.nii' files
+                    unix(sprintf('cp %s/cr*.nii %s/.', self.workingDir, self.outputDir));
+                    % copy mean image
+                    unix(sprintf('cp %s/mean*.nii %s/.', self.workingDir, self.outputDir));
+                    % copy also the realignment parameters
+                    unix(sprintf('cp %s/*.txt %s/.', self.workingDir, self.outputDir));
+                end
+                fprintf('Combined images copied to %s in:\n',self.outputDir);
+                toc(t)
+            else
+                fprintf('nothing to copy - workingDir is the outputDir');
             end
+            
         end
     end
-
-
 
     methods(Access=private)
         function files=FilesOfRun(self,iRun)
