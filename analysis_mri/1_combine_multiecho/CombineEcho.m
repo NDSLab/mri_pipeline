@@ -8,47 +8,39 @@ classdef CombineEcho < handle
     % http://stackoverflow.com/questions/8086765/why-do-properties-not-take-on-a-new-value-from-class-method 
     % 
     % Usage: 
-    %   combiner = CombineEcho('runSeries',[7 11 15],'nEchoes',[4 4 4],'structuralSeries',19,'scannerName','Skyra');
-    %   combiner.Run(); % runs all steps
+    %   combiner = CombineEcho( 'filenames',cell_array_of_files,...
+    %                           'nEchoes', [4 4 4],...
+    %                           'TE',cell_array_of_TE,...
+    %                           'outputDir','/path/to/output/directory');
+    %   combiner.DoMagic(); % runs all steps
     % 
 
     properties
-        % Array of cell arrays; each cell array contains filenames of original DICOMS of ONE run
+        % Cell arrays; each cell contains filenames of original Nifti files of ONE run, ONE echoe
         % this should have all files, including the prescans -- we assume the first nWeightVolumes in each run/echo are the pre
         % Note: filenames MUST include full path info, that is also the '/home/username/projects/subject1/..' for each file
-        filenamesDicom;
+        filenames; % size: {nRuns, max(nEchoes)}
 
         % array of integers - Number of Echoes - should be array of length = nRuns,e.g. [4 4 4]
-        nEchoes;
+        nEchoes; % size: [nRuns]
+
+        % cell array (length=nRun) of echo times
+        % each cell contains an array of echo times for that run
+        TE; % size: {nRuns}
         
-        % Where should the combined files be saved in?
+        % Where should the combined files be saved in
         outputDir;
-        
+
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %%% BELOW: These properties should only be set manually if going against our group's default
         
         %Number of Volumes used for calculating weights
         nWeightVolumes=30;
-
-        % % Array of cell arrays; each cell array contains filenames of original DICOMS of one run 
-        % % this should have only the scans which will be used for the weight calculation. 
-        % % Note: if not set manually, these will be picked as the first 'nWeightVolumes' from 'filenamesDicom' - this should be the default
-        % filenamesDicomPrescansOnly;
-
-        % This script uses a working directory. 
-        % if not set, outputDir will be used
-        workingDir;
-
+      
         % per default, only final output will be copied to the 'outputDir'
         keepIntermediaryFiles = false;
 
-        % T_Echo - will be filled up by ConvertDicoms() - cell array;
-        TE;
-
-        % filenames after conversion to nifti format - cell array
-        filenamesNifti;
-
-        % combining weigts - cell array
+        % combining weights - cell array
         weights; 
     end
 
@@ -57,7 +49,7 @@ classdef CombineEcho < handle
         function self=CombineEcho(varargin)
         % ------------------------------------------------------------------
         % 
-        % Construction - CombineEcho
+        % Constructor - CombineEcho
         % 
         % ------------------------------------------------------------------
             % Read arguments
@@ -68,26 +60,17 @@ classdef CombineEcho < handle
                     warning('Unrecognized option: %s.',varargin{i});
                 end
             end
-
-            % % if no prescans manually provided, set them by extracting the first 'nWeightVolumes' from 'filenamesDicom'
-            % if isempty(self.filenamesDicomPrescansOnly) 
-            %     for iRun = 1:length(self.filenamesDicom)
-            %         filesRun = self.filenamesDicom{1};
-            %         self.filenamesDicomPrescansOnly{iRun} = filesRun(1:self.nWeightVolumes,:);
-            %     end
-            % end
         end
 
         function DoMagic(self)
         % ------------------------------------------------------------------
         % 
-        % run all combining sub-parts in one go
+        % Run all combining sub-parts in one go
         % 
         % ------------------------------------------------------------------
             fprintf('Combiner doing its magic\n');
             self.AssertReadyToGo();
-            self.ConvertDicoms();
-            self.SpikeDetection(); % not implemented yet
+            % self.SpikeDetection(); % not implemented yet
             self.Realign();
             self.SplitRealignmentParameters();
             self.Reslice();
@@ -103,9 +86,8 @@ classdef CombineEcho < handle
         % 
         % ------------------------------------------------------------------
             % test whether all public properties non-empty
-            % exception: TE and filenamesNift - these will be set by running ConvertDicoms()
-            % exception: weights - will be set by CalculateWeights()
-            ignoreProperties = {'TE','filenamesNifti','weights'};
+           % exception: weights - will be set by CalculateWeights()
+            ignoreProperties = {'weights'};
             allProperties = fieldnames(self);
             checkProperties = setxor(allProperties,ignoreProperties); % all except the ones on the ingore list
             msg = ''; e = false;
@@ -117,44 +99,6 @@ classdef CombineEcho < handle
             end
             assert(~e,msg);
         end
-
-        function ConvertDicoms(self)
-        % ------------------------------------------------------------------
-        % 
-        % converts DICOM images to nifti format
-        % 
-        % ------------------------------------------------------------------
-            t=tic;
-         
-            nRuns = size(self.filenamesDicom,1);
-
-            % NOTE: SPM writes newly created nifti files to
-            % current directory, so we temporarily jump to the
-            % 'workingDir folder'
-            
-            oldFolder = pwd;
-            mkdir(self.workingDir); % make sure folder exists
-            cd(self.workingDir);
-                
-            % combine each run separately
-            for iRun=nRuns:-1:1
-                currentNEchoes =self.nEchoes(iRun);
-                for iEcho = currentNEchoes:-1:1
-                    % grab headers of files
-                    hdr = spm_dicom_headers(self.filenamesDicom{iRun,iEcho});
-                   
-                    % convert dicom to nifti
-                    tmp = spm_dicom_convert(hdr,'mosaic','flat','nii');
-                    self.filenamesNifti{iRun,iEcho} = tmp.files;
-                end
-            end
-            cd(oldFolder);
-         
-            fprintf('DICOMs converted to NifTi in:\n');
-            toc(t)
-            
-        end
-
 
         function SpikeDetection(self)
         % ------------------------------------------------------------------
@@ -215,22 +159,22 @@ classdef CombineEcho < handle
         % written. This function splits it into to appropriate number of files
         % 
         % ------------------------------------------------------------------
-            nRuns = size(self.filenamesDicom,1);
+            nRuns = size(self.filenames,1);
 
             % first, make backup copy of rp_*.txt file
-            unix(sprintf('mv %s/rp_f*.txt %s/rp_allRuns.txt',self.workingDir,self.workingDir));
+            unix(sprintf('mv %s/rp_f*.txt %s/rp_allRuns.txt',self.outputDir,self.outputDir));
 
             % open file with all parameters
-            fileAll = sprintf('%s/rp_allRuns.txt',self.workingDir);
+            fileAll = sprintf('%s/rp_allRuns.txt',self.outputDir);
             f_orig  = fopen(fileAll,'r');
 
             for iRun=1:nRuns
                 % open output file for current run
-                fileOut = sprintf('%s/rp_run%i.txt',self.workingDir,iRun);
+                fileOut = sprintf('%s/rp_run%i.txt',self.outputDir,iRun);
                 f_out = fopen(fileOut,'w');
 
                 % determine length of current run
-                nLinesToCopy = size(self.filenamesDicom{iRun,1},1); 
+                nLinesToCopy = size(self.filenames{iRun,1},1); 
 
                 % get nLinesToCopy and write the to f_out file
                 for i=1:nLinesToCopy
@@ -248,7 +192,7 @@ classdef CombineEcho < handle
         function Reslice(self)
         % ------------------------------------------------------------------
         % 
-        % Reslice all images
+        % Reslice all images, using SPM12 reslize function
         % 
         % ------------------------------------------------------------------
             t=tic;
@@ -261,30 +205,6 @@ classdef CombineEcho < handle
             toc(t)
         end
 
-
-        function GetTE(self)
-        % ------------------------------------------------------------------
-        % 
-        % Get T_Echo from DICOM headers
-        % 
-        % ------------------------------------------------------------------
-             nRuns = size(self.filenamesDicom,1);
-
-             for iRun = nRuns:-1:1
-
-                currentNEchoes =self.nEchoes(iRun);
-                for iEcho = currentNEchoes:-1:1
-                    % grab headers of files
-                    allFiles = self.filenamesDicom{iRun,iEcho};
-                    % read header of first file from run and echo
-                    hdr = spm_dicom_headers(allFiles(1,:));
-                     % save echo time for combine-script
-                    TERun(iEcho) = hdr{1}.EchoTime;
-                end
-                self.TE{iRun} = TERun;
-            end
-        end
-
         function CalculateWeights(self)
         % ------------------------------------------------------------------
         % 
@@ -294,11 +214,11 @@ classdef CombineEcho < handle
             t = tic;
             % get list of all prescans
             % get first nWeightVolumes from each run and echo, and prepend an 'r' for spm-resliced
-            nRuns = size(self.filenamesDicom,1);
+            nRuns = size(self.filenames,1);
             for iRun=1:nRuns
                 clear filesEcho;
                 for iEcho=1:self.nEchoes(iRun)
-                    filesTemp=self.filenamesNifti{iRun,iEcho};    
+                    filesTemp=self.filenames{iRun,iEcho};    
                     charTemp = cell2mat(filesTemp(1:self.nWeightVolumes,:));                    
                     filesEcho(:,:,iEcho) = self.AddPrefix(charTemp,'r');
                 end
@@ -358,7 +278,7 @@ classdef CombineEcho < handle
                 % prescans
                 clear V; % delete previously used 'V' variable..
 
-                nRuns = size(self.filenamesDicom,1);
+                nRuns = size(self.filenames,1);
 
                 for iRun = nRuns:-1:1
                     % grab weights for current run
@@ -407,40 +327,6 @@ classdef CombineEcho < handle
             end
         end
 
-        function CopyFilesToOutputDir(self)
-        % ------------------------------------------------------------------
-        % 
-        % Copy final files from working dir to output dir
-        % 
-        % ------------------------------------------------------------------
-            t=tic;
-            % only need to copy files it outputDir ~= workingDir
-            if ~strcmp(self.workingDir,self.outputDir)
-                % make sure output directory exists
-                mkdir(self.outputDir)
-
-                if self.keepIntermediaryFiles
-                    % keep all intermediary files, ie copy whole working directory
-                    % content to outputDir
-                    unix(sprintf('cp %s/* %s/.',self.workingDir,self.outputDir));
-                else
-                    % copy only final, combined images, the mean image, 
-                    % and the realignment parameter files
-                    
-                    % copy 'cr*.nii' files
-                    unix(sprintf('cp %s/cr*.nii %s/.', self.workingDir, self.outputDir));
-                    % copy mean image
-                    unix(sprintf('cp %s/mean*.nii %s/.', self.workingDir, self.outputDir));
-                    % copy also the realignment parameters
-                    unix(sprintf('cp %s/*.txt %s/.', self.workingDir, self.outputDir));
-                end
-                fprintf('Combined images copied to %s in:\n',self.outputDir);
-                toc(t)
-            else
-                fprintf('nothing to copy - workingDir is the outputDir');
-            end
-            
-        end
     end
 
     methods(Access=private)
@@ -456,12 +342,12 @@ classdef CombineEcho < handle
         % dim(3) = echoes
 
             % initialize char-matrix
-            [nFiles nChars] = size(cell2mat(self.filenamesNifti{iRun,1}));
+            [nFiles nChars] = size(cell2mat(self.filenames{iRun,1}));
             files = char(zeros(nFiles,nChars,self.nEchoes(iRun)));
 
             % and copy content to output matrix
             for iEcho=1:self.nEchoes(iRun)
-                files(:,:,iEcho)= char(cell2mat(self.filenamesNifti{iRun,iEcho}));
+                files(:,:,iEcho)= char(cell2mat(self.filenames{iRun,iEcho}));
             end
             
         end
@@ -480,9 +366,9 @@ classdef CombineEcho < handle
         % listed one after the other - but still sorted by echo)
 
             % collect all sizes of the entries of cell-array
-            for iRun=size(self.filenamesNifti,1):-1:1
+            for iRun=size(self.filenames,1):-1:1
                 for iEcho=self.nEchoes(iRun):-1:1
-                    [nFiles(iRun,iEcho) nChars(iRun,iEcho)] = size(cell2mat(self.filenamesNifti{iRun,iEcho}));
+                    [nFiles(iRun,iEcho) nChars(iRun,iEcho)] = size(cell2mat(self.filenames{iRun,iEcho}));
                 end
             end
 
@@ -492,8 +378,8 @@ classdef CombineEcho < handle
             % and copy content to output matrix
             for iEcho=1:self.nEchoes(iRun)
                 offset = 0;
-                for iRun=1:size(self.filenamesNifti,1)
-                    out((offset+1):(offset+nFiles(iRun,iEcho)),1:nChars(iRun,iEcho),iEcho)= char(cell2mat(self.filenamesNifti{iRun,iEcho}));
+                for iRun=1:size(self.filenames,1)
+                    out((offset+1):(offset+nFiles(iRun,iEcho)),1:nChars(iRun,iEcho),iEcho)= char(cell2mat(self.filenames{iRun,iEcho}));
                     offset = offset + nFiles(iRun,iEcho);
                 end
             end
@@ -547,7 +433,7 @@ classdef CombineEcho < handle
                     end
                 end
             else
-                error('Wrong usage of AddPrefix(..) function. files must be a two or three dimensional char-matrix');
+                error('Wrong usage of AddPrefix(..) function. files must be a one, two or three dimensional char-matrix');
             end
         end
     end

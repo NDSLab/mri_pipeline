@@ -16,7 +16,7 @@ classdef CombineWrapper < handle
     %                             'nEchoes', 4);
     % % runs all steps
     % combiner.DoMagic(); 
-    % 
+    %  
     
     properties
         %Series corresponding to first echo of each run
@@ -43,17 +43,26 @@ classdef CombineWrapper < handle
         % combiner - class CombineEcho instance
         % this can be used to call sub-steps of the combineEcho instance manually via the wrapper instance
         combiner;
+
+        % whether to keep everything written in the working directory
+        % if false, only the final, realign, resliced, and combined files will be written to the output folder;
+        % otherwise, the whole content of workingDir will be written there
+        % default - false
+        keepIntermediaryFiles=false;
     end
 
     properties(Access=protected)
         % These variables will be set during the running of the main Run()-function
 
         % cell array - holds ALL filenames, split by runs 
-        filenamesDicom = {}; 
+        filenamesDicom; 
 
-        % cell array - holds ONLY PRESCANs filenames. 
-        % Note: these should also be part of the 'filenamesDicom'
-        filenamesPrescanDicom = {};
+        % cell array - holds all filenames of converted nifti, split by runs
+        filenamesNifti;
+
+        % T_Echo - will be filled up by GetTE() - cell array;
+        % each cell contains an array of echo times for that run
+        TE; % size: {nRuns}
     end
     
     methods
@@ -85,8 +94,10 @@ classdef CombineWrapper < handle
             fprintf('Wrapper doing its magic\n');
             self.AssertReadyToGo();
             self.LoadAllDicoms();
+            self.ConvertDicoms();
             self.CreateCombiner();
             self.RunCombining();
+            self.CopyFilesToOutputDir();
             self.ArrangeCombinedFiles();
             fprintf('Wrapper magic done in:\n');
             toc(t)
@@ -131,7 +142,68 @@ classdef CombineWrapper < handle
             % enforce that all echoes have the same number of scanned volumes
             self.EnforceConsistentVolumes();
         end
+
+
+        function ConvertDicoms(self)
+        % ------------------------------------------------------------------
+        % 
+        % converts DICOM images to nifti format
+        % 
+        % ------------------------------------------------------------------
+            t=tic;
+         
+            nRuns = size(self.filenamesDicom,1);
+
+            % NOTE: SPM writes newly created nifti files to
+            % current directory, so we temporarily jump to the
+            % 'workingDir folder'
+            
+            oldFolder = pwd;
+            mkdir(self.workingDir); % make sure folder exists
+            cd(self.workingDir);
+                
+            % combine each run separately
+            for iRun=nRuns:-1:1
+                currentNEchoes =self.nEchoes(iRun);
+                for iEcho = currentNEchoes:-1:1
+                    % grab headers of files
+                    hdr = spm_dicom_headers(self.filenamesDicom{iRun,iEcho});
+                   
+                    % convert dicom to nifti
+                    tmp = spm_dicom_convert(hdr,'mosaic','flat','nii');
+                    self.filenamesNifti{iRun,iEcho} = tmp.files;
+                end
+            end
+            cd(oldFolder);
+         
+            fprintf('DICOMs converted to NifTi in:\n');
+            toc(t)
+            
+        end
         
+        function GetTE(self)
+        % ------------------------------------------------------------------
+        % 
+        % Get T_Echo from DICOM headers
+        % 
+        % ------------------------------------------------------------------
+             nRuns = size(self.filenamesDicom,1);
+
+             for iRun = nRuns:-1:1
+
+                currentNEchoes =self.nEchoes(iRun);
+                for iEcho = currentNEchoes:-1:1
+                    % grab headers of files
+                    allFiles = self.filenamesDicom{iRun,iEcho};
+                    % read header of first file from run and echo
+                    hdr = spm_dicom_headers(allFiles(1,:));
+                     % save echo time for combine-script
+                    TERun(iEcho) = hdr{1}.EchoTime;
+                end
+                self.TE{iRun} = TERun;
+            end
+        end
+
         function CreateCombiner(self)
         % ------------------------------------------------------------------
         % 
@@ -147,8 +219,8 @@ classdef CombineWrapper < handle
             % this call assumes that 30 first pulses of each run will be used to calculate the combining weights
             self.combiner = CombineEcho('filenamesDicom',   self.filenamesDicom,...
                                         'nEchoes',          self.nEchoes,...
-                                        'outputDir',        self.outputDir,...
-                                        'workingDir',       self.workingDir ...
+                                        'outputDir',        self.workingDir,...
+                                        'TE',               self.TE ...
                                        );
         end
 
@@ -160,6 +232,40 @@ classdef CombineWrapper < handle
         % -------------------------------------------------------------
             % run all combining steps
             self.combiner.DoMagic();
+        end
+
+        function CopyFilesToOutputDir(self)
+        % ------------------------------------------------------------------
+        % 
+        % Copy final files from working dir to output dir
+        % 
+        % ------------------------------------------------------------------
+            t=tic;
+            % only need to copy files if outputDir ~= workingDir
+            if ~strcmp(self.workingDir,self.outputDir)
+                % make sure output directory exists
+                mkdir(self.outputDir)
+
+                if self.keepIntermediaryFiles
+                    % keep all intermediary files, ie copy whole working directory
+                    % content to outputDir
+                    unix(sprintf('cp %s/* %s/.',self.workingDir,self.outputDir));
+                else
+                    % copy only final, combined images, the mean image, 
+                    % and the realignment parameter files
+                    
+                    % copy 'cr*.nii' files
+                    unix(sprintf('cp %s/cr*.nii %s/.', self.workingDir, self.outputDir));
+                    % copy mean image
+                    unix(sprintf('cp %s/mean*.nii %s/.', self.workingDir, self.outputDir));
+                    % copy also the realignment parameters
+                    unix(sprintf('cp %s/*.txt %s/.', self.workingDir, self.outputDir));
+                end
+                fprintf('Combined images copied to %s in:\n',self.outputDir);
+                toc(t)
+            else
+                fprintf('nothing to copy - workingDir is the outputDir');
+            end            
         end
 
         function ArrangeCombinedFiles(self)
@@ -199,12 +305,9 @@ classdef CombineWrapper < handle
         % 
         % ------------------------------------------------------------------
         % this function is mostly for debugging
-            files = self.filenamesDicom();
+        files = self.filenamesDicom();
             disp(files)
         end
-
-
-
 
     end
 
