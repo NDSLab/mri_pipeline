@@ -1,11 +1,11 @@
 function batch_CombineSubject
 %BATCH_COMBINESUBJECT combine multi-echo images, for several subjects, by
 % submitting each subject as a different job to the torque-cluster
-subjects = [1]; % array of integers
+subjects = [28]; % array of integers
 
 % human readable requirements for single job:
-memory_in_GB = 2;
-time_in_hours  = 2;
+memory_in_GB = 1;
+time_in_hours  = 1;
 
 cfg.memreq = memory_in_GB * 1024 *1024 * 1024;
 cfg.timreq = time_in_hours * 60 * 60;
@@ -13,8 +13,13 @@ cfg.timreq = time_in_hours * 60 * 60;
 addpath /home/common/matlab/fieldtrip/qsub
 if ~isempty(subjects)
     for s = subjects
-        % submit one job at a time
-        qsubfeval(@CombineSubject, s, 'memreq', cfg.memreq, 'timreq', cfg.timreq);
+        % use qsub prologue/epilogue scripts to create/clean up working
+        % directory
+        % cf analysis_mri/utils
+        assert(exist('~/bin/torque_prologue.sh','file')==2,'Error: prologue script not found. Run analysis_mir/utils/install_torque_scripts.sh\n For more details see example_working_dir in the utils folder.');
+        assert(exist('~/bin/torque_epilogue.sh','file')==2,'Error: epilogue script not found. Run analysis_mir/utils/install_torque_scripts.sh\n For more details see example_working_dir in the utils folder.');
+        qsubfeval(@CombineSubject, s, 'memreq', cfg.memreq, 'timreq', cfg.timreq,...
+         'options','-l prologue=~/bin/torque_prologue.sh -l epilogue=~/bin/torque_epilogue.sh');
     end
 end
 end

@@ -76,7 +76,6 @@ classdef CombineEcho < handle
             self.Reslice();
             self.CalculateWeights();
             self.ApplyWeights();
-            self.CopyFilesToOutputDir();
         end
 
         function AssertReadyToGo(self)
@@ -225,9 +224,6 @@ classdef CombineEcho < handle
                 filesAllRuns{iRun} = filesEcho;
             end
 
-            % load echo times
-            self.GetTE();
-            
             % calculate weights for each run independently
             for iRun = 1:nRuns
                 files = filesAllRuns{iRun};

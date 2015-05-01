@@ -13,59 +13,79 @@ function [outputs] = CombineSubject(subjectNumber, sessionNumber)
 	% assuming location on M-drive is like:
 	% /home/decision/petvav/projects/3014030.01/analysis_mri/1_combine/CombineSubject.m
 	% we can use this to define some variables:
-
-    addpath('~/repos/spm12');
-
+    
+    % log everything written to console
+    diary(['combineSubject_s' num2str(subjectNumber) '.log'])
+    fprintf('%s - Starting combination script for subject %i\n',datestr(now),subjectNumber);
+    
+    addpath('/home/common/matlab/spm12');
+    addpath('../utils'); 
+    
     % set default session number
 	if ~exist('sessionNumber','var')
    		sessionNumber=1;
 	end
 
-    % get all path-related defaults
-	[path_str,filename, extension] = fileparts(mfilename('fullpath'));
-    pathParts = strsplit(path_str,'/');
-    projectFolder = sprintf('%s/',pathParts{1:end-2});  % has trailing '/'
-    projectNumber = pathParts{end-2};
-    [~, userName] = system('whoami'); userName=userName(1:end-1) % system('whoami') contains trailing \n
-    
-    subjectFolder=[projectFolder projectNumber '_' userName '_' num2str(subjectNumber,'%03d') '_' num2str(sessionNumber,'%03d') '/'];
-    dataRawPath=[subjectFolder 'data_raw'];
-    combinedData=[subjectFolder 'data_combined']; %combined data folder for all subjects - here, the combined data will be saved
-
-	% load meta-data, defined in /data_raw/scan_metadata.m
+    % get subject specific folders, project number, etc.
+    % load meta-data, defined in /data_raw/scan_metadata.m
     % assuming location on M-drive is like:
     % /home/decision/petvav/projects/3014030.01/3014030.01_petvav_001_001/data_raw/scan_metadata.m
-    subjectSettingsFile = [dataRawPath '/scans_metadata.m'];
-    % exit(..,'file') returns 2, if file exists
-    assert(exist(subjectSettingsFile,'file')==2, 'Error loading subject-specific settings file. File "%s" not found',subjectSettingsFile);
-    run(subjectSettingsFile);
+        addpath('../utils');
+    s=GetSubjectProperties(subjectNumber,sessionNumber);
 
-    % define a working directory
-    workingDir = sprintf('/data/%s/%s/subj%03dsession%03d/combining',userName,projectNumber,subjectNumber,sessionNumber);
-    mkdir(workingDir); % be sure to create folder
-    % assert we can read/write to working dir
-    workingDirAccess = fileattrib(workingDir);
-    assert(workingDirAccess.UserRead==1,'No reading rights for working directory "%s"');
-    assert(workingDirAccess.UserWrite==1,'No writing rights for working directory "%s"');
-    % assert workingDir is empty; dir(folder_path) returns '.' and '..'
-    assert(length(dir(workingDir))==2,'working directory is not empty -- "%s"')
+	s.subjectSettingsFile = [s.dataRawPath '/scans_metadata.m'];
+       
+    % print some info (for log-file)
+    fprintf('\n===============================\n');
+    fprintf('Subject %d - Session %d:\n',subjectNumber,sessionNumber);
+    fprintf('Series corresponding to first echo of each run: %s\n', mat2str(s.runSeries));
+    fprintf('Number of Echoes: %s\n', mat2str(s.nEchoes));
+    fprintf('Number of Prescan-Volumes: %d\n', s.nWeightVolumes);
     
-	% print some info (for log-file)
-    fprintf('Structural File Series: %s\n', mat2str(structuralSeries));
-    fprintf('Localizer File Series: %s\n', mat2str(localizerSeries));
-    fprintf('Series corresponding to first echo of each run: %s\n', mat2str(runSeries));
-    fprintf('Number of Echoes: %s\n', mat2str(nEchoes));
-    fprintf('Number of Prescan-Volumes: %d\n', nWeightVolumes);
-                
+    % define a working directory
+    j = get_jobinfo();
+    if j.workingDir 
+        % use the working directory already created
+        workingDir = j.workingDir;
+    else 
+        % try to create folder '/data/$user/$jobinfo'
+        try 
+            workingDir = sprintf('/data/%s/%s',j.username,j.jobid); 
+            mkdir(workingDir)
+            assert(exist(workingDir,'dir')==7,'Error: workingPath not created');
+            usingCustomWorkingDir = true;
+        catch 
+            % if we cannot create '/data/$user/$jobinfo', then use
+            % outputDir as working directory
+            warning('WARNING: DATA MIGHT BE OVERWRITTEN. No working directory found and could not create one. Going to use the output path.', s.dataCombinedPath);
+            workingDir = s.dataCombinedPath;
+        end
+    end
+    % assert we can read/write to working dir
+    [status, m, mId]=mkdir(workingDir); % use output to suppress warning that folder exists - it should, but just in case...
+    assert(exist(workingDir,'dir')==7,'Error: workingPath not created');
+    [status,workingDirAccess] = fileattrib(workingDir);
+    assert(workingDirAccess.UserRead==1,'No reading rights for working directory "%s"',workingDir);
+    assert(workingDirAccess.UserWrite==1,'No writing rights for working directory "%s"',workingDir);
+    fprintf('using working directory "%s"\n', workingDir); 
+    
     % run Wrapper for combiner
-    wrapper = CombineWrapper(   'runSeries',runSeries,...
-                                'nEchoes',nEchoes,...
-                                'dataDir',dataRawPath,...
-                                'outputDir',combinedData,...
-                                'workingDir',workingDir);
+    wrapper = CombineWrapper(   'runSeries',s.runSeries,...
+                                'nEchoes',s.nEchoes,...
+                                'dataDir',s.dataRawPath,...
+                                'outputDir',s.dataCombinedPath,...
+                                'workingDir',workingDir,...
+                                'keepIntermediaryFiles',~s.deleteUncombinedData...
+                                );
     wrapper.DoMagic();
-
-    % remove working directory and its content
-    rmdir(workingDir,'s');
-
+    
+    if usingCustomWorkingDir
+        % clean up working dir created by this script
+        fprintf('removing working directory %s\n',workingDir);
+        rmdir(workingDir,'s')
+    end
+    
+    fprintf('\nsuccessfully combined data\n');
+    fprintf('\n===============================\n');
+    diary off
 end

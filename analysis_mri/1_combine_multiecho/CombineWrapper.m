@@ -49,9 +49,7 @@ classdef CombineWrapper < handle
         % otherwise, the whole content of workingDir will be written there
         % default - false
         keepIntermediaryFiles=false;
-    end
 
-    properties(Access=protected)
         % These variables will be set during the running of the main Run()-function
 
         % cell array - holds ALL filenames, split by runs 
@@ -95,6 +93,7 @@ classdef CombineWrapper < handle
             self.AssertReadyToGo();
             self.LoadAllDicoms();
             self.ConvertDicoms();
+            self.GetTE();
             self.CreateCombiner();
             self.RunCombining();
             self.CopyFilesToOutputDir();
@@ -115,7 +114,7 @@ classdef CombineWrapper < handle
 
             % test whether all public properties non-empty
             % exception: combiner instance - this will be set using all the other properties
-            ignoreProperties = {'combiner'};
+            ignoreProperties = {'combiner','TE','filenamesDicom','filenamesNifti'};
             allProperties = fieldnames(self);
             checkProperties = setxor(allProperties,ignoreProperties); % all except the ones on the ingore list
             msg = ''; e = false;
@@ -159,7 +158,8 @@ classdef CombineWrapper < handle
             % 'workingDir folder'
             
             oldFolder = pwd;
-            mkdir(self.workingDir); % make sure folder exists
+            [s,m,mId]=mkdir(self.workingDir); % make sure folder exists
+            assert(s==1,'Could not create working directory');
             cd(self.workingDir);
                 
             % combine each run separately
@@ -217,7 +217,7 @@ classdef CombineWrapper < handle
 
             % create combiner object
             % this call assumes that 30 first pulses of each run will be used to calculate the combining weights
-            self.combiner = CombineEcho('filenamesDicom',   self.filenamesDicom,...
+            self.combiner = CombineEcho('filenames',        self.filenamesNifti,...
                                         'nEchoes',          self.nEchoes,...
                                         'outputDir',        self.workingDir,...
                                         'TE',               self.TE ...
@@ -244,7 +244,7 @@ classdef CombineWrapper < handle
             % only need to copy files if outputDir ~= workingDir
             if ~strcmp(self.workingDir,self.outputDir)
                 % make sure output directory exists
-                mkdir(self.outputDir)
+                mkdir(self.outputDir);
 
                 if self.keepIntermediaryFiles
                     % keep all intermediary files, ie copy whole working directory
@@ -288,7 +288,8 @@ classdef CombineWrapper < handle
 
             for iRun = 1:length(self.runSeries)
                 % create subfolders 'run1', 'run2', etc.
-                mkdir(sprintf('%s/run%u' , self.outputDir,iRun))
+                [s, m, mId]=mkdir(sprintf('%s/run%u' , self.outputDir,iRun));
+                assert(s==1,'Could not create run-subfolder %s', sprintf('%s/run%u' , self.outputDir,iRun));
 
                 % move files to new folder
                 unix(sprintf('mv %s/crf*-%04.0f-*.nii %s/run%u/.',self.outputDir,self.runSeries(iRun),self.outputDir,iRun));
