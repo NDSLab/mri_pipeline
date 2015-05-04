@@ -27,8 +27,6 @@ out.structuralSeries = structuralSeries;
 out.scannerName = scannerName;
 out.deleteUncombinedData = deleteUncombinedData;
 out.localizerSeries = localizerSeries;
-out.prepscans = prepscans;
-out.prescanSeries=prescanSeries;
 
 end
 
