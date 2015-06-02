@@ -1,5 +1,9 @@
 # Combining multi-echo images
-## The core combine script
+===============================
+## Scripts Description
+-------------------------------
+
+### The core combine script
 
 This describes how the multi-echo data is combined (by `CombineEcho.m`).
 
