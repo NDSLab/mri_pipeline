@@ -16,7 +16,7 @@ echo "running custom prologue script $0"
 echo ""
 echo "trying to create working directory $tmp"
 
-mkdir -m 700 $tmp 
+mkdir -p -m 700 $tmp 
 chown $user.$group $tmp
 
 if [ -d $tmp ] ; then

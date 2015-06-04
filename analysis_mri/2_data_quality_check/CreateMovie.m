@@ -42,6 +42,9 @@ MOVIE_FILENAMES = config.movieFilenames;
 FPS = config.framesPerSecond;
 % where to save resulting movies
 FOLDER_OUTPUT = config.folderOutput;
+% which compression type VideoWriter will use
+COMPRESSION_TYPE = config.compressionType;
+
 
 % assert some more 'hidden' assumptions
 %---------------------------------------
@@ -57,6 +60,12 @@ for iMovie=1:length(CLIMS)
     end
 end
 assert(ndims(DATA)==4,'CreateMovie: data must be a 4D array, where last dim is time');
+validCompressionTypes = {'Motion JPEG AVI','MPEG-4','Uncompressed AVI'};
+assert(ismember(COMPRESSION_TYPE, validCompressionTypes),'please use valid compression types only. See VideoWriter for help');
+assert( ~strcmp(COMPRESSION_TYPE, 'MPEG-4') || ispc ,... % either compression is pc - then we can have codec MPEG-4 - or we're not on pc, then codec must be different
+    'When using MPEG-4 codec, you must run this script from Windows');
+
+
 
 % setup mosaic parameters
 [dimX,dimY,nSlice,nVolumes] = size(DATA);
@@ -81,7 +90,7 @@ for vol = 1:nVolumes
         mosaic(minY:maxY, maxX:-1:minX, vol) = dataSlice;
     end
 end
-clear data; % to save memory
+clear DATA; % to save memory
 
 % create movies
 %-----------------
@@ -128,11 +137,17 @@ close(f)
 fprintf(' done\n');
 
 % save all movies to disk
+
 oldFolder=pwd;
 cd(FOLDER_OUTPUT);
 for iMovie=1:nMovies
     fprintf('Saving movie %i - %s...',iMovie, CLIMS{iMovie}.type);
-    movie2avi(allMovies{iMovie}.movie ,MOVIE_FILENAMES{iMovie},'fps',FPS);
+    compression = COMPRESSION_TYPE;
+    writerObject = VideoWriter(MOVIE_FILENAMES{iMovie},compression);
+    writerObject.FrameRate = FPS;
+    open(writerObject);
+    writeVideo(writerObject,allMovies{iMovie}.movie);
+    close(writerObject);
     fprintf(' done\n');
 end
 cd(oldFolder);

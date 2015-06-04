@@ -14,6 +14,8 @@
 % 
 function [data, volumesInfo] = LoadImageData( FOLDER_IMAGES, FILE_FILTER, DESCEND_INTO_SUBFOLDERS)
 
+LoadSPM(); % in ../utils
+
 if DESCEND_INTO_SUBFOLDERS
     imageFilenames = cellstr(spm_select('FPListRec',FOLDER_IMAGES,FILE_FILTER));
 else
