@@ -6,3 +6,9 @@ A detailed description what those scripts do and how they are to be used can be 
 http://ndslab.github.io/mri_pipeline/wiki/
 
 
+Change log
+===============
+
+important changes (except bug fixes) are listed below:
+
+* just a place holder for now... 
