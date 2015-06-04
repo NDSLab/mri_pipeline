@@ -19,13 +19,13 @@
   -- (Read: http://dynalon.github.io/mdwiki/#!quickstart.md#Adding_a_navigation)
   -->
   
-#Combining
+# Combining
 [Combining](pages/combining.md)
-#Data Quality
+# Data Quality
 [General Information] (pages/uploads/documents/data quality_general info.md)
 [How to] (pages/uploads/documents/data quality_howto.md)
 [Scripts Description] (pages/uploads/documents/data quality_scripts description.md)
-#Preprocessing
+# Preprocessing
 [General Information](pages/uploads/documents/Preprocessing_general info.md)
 [How to] (pages/uploads/documents/Preprocessing_howto.md)
 [README](../README.md)
