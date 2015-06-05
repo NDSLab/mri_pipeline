@@ -32,8 +32,6 @@ function [outputs] = CombineSubject(subjectNumber, sessionNumber)
     % /home/decision/petvav/projects/3014030.01/3014030.01_petvav_001_001/data_raw/scan_metadata.m
         addpath('../utils');
     s=GetSubjectProperties(subjectNumber,sessionNumber);
-
-	s.subjectSettingsFile = [s.dataRawPath '/scans_metadata.m'];
        
     % print some info (for log-file)
     fprintf('\n===============================\n');
@@ -44,6 +42,7 @@ function [outputs] = CombineSubject(subjectNumber, sessionNumber)
     
     % define a working directory
     j = get_jobinfo();
+    usingCustomWorkingDir = false;
     if j.workingDir 
         % use the working directory already created
         workingDir = j.workingDir;
@@ -54,6 +53,7 @@ function [outputs] = CombineSubject(subjectNumber, sessionNumber)
             mkdir(workingDir)
             assert(exist(workingDir,'dir')==7,'Error: workingPath not created');
             usingCustomWorkingDir = true;
+            
         catch 
             % if we cannot create '/data/$user/$jobinfo', then use
             % outputDir as working directory

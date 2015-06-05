@@ -62,4 +62,4 @@ Change log
 
 important changes (except bug fixes) are listed below:
 
-* just a place holder for now... 
+* new location for `scans_metadata.m`: place it inside the subject folder (e.g. `3014030.01_petvav_001_001` instead of the sub-folder `data_raw`) - this file will be used also by data quality checks and SPM preprocessing scripts. 
