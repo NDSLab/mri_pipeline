@@ -1,11 +1,12 @@
 # Documentation
 
 The documentation is mainly organized in 3 different sections for each step of data preprocesing and analysis:
+
 -General Information
 
 -How to
 
--Scripts Description
+-What the scripts do
 
 ##General Information
 
