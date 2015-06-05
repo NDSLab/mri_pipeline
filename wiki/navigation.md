@@ -34,33 +34,33 @@
 
 [Slice Timing]()
 
-*[General Information](pages/uploads/documents/Slice_Timing_general_info.md)
-*[How to](pages/uploads/documents/Slice_Timing_howto.md)
+* [General Information](pages/uploads/documents/Slice_Timing_general_info.md)
+* [How to](pages/uploads/documents/Slice_Timing_howto.md)
 
 [Coregister]()
 
-*[General Information](pages/uploads/documents/Coregister_general_info.md)
-*[How to](pages/uploads/documents/Coregister_howto.md)
+* [General Information](pages/uploads/documents/Coregister_general_info.md)
+* [How to](pages/uploads/documents/Coregister_howto.md)
 
 [Segmentation]()
 
-*[General Information](pages/uploads/documents/Segmentation_general_info.md)
-*[How to](pages/uploads/documents/Segmentation_howto.md)
+* [General Information](pages/uploads/documents/Segmentation_general_info.md)
+* [How to](pages/uploads/documents/Segmentation_howto.md)
 
 [Normalise]()
 
-*[General Information](pages/uploads/documents/Normalise_general_info.md)
-*[How to](pages/uploads/documents/Normalise_howto.md)
+* [General Information](pages/uploads/documents/Normalise_general_info.md)
+* [How to](pages/uploads/documents/Normalise_howto.md)
 
 [Smoothing]()
 
-*[General Information](pages/uploads/documents/Smoothing_general_info.md)
-*[How to](pages/uploads/documents/Smoothing_howto.md)
+* [General Information](pages/uploads/documents/Smoothing_general_info.md)
+* [How to](pages/uploads/documents/Smoothing_howto.md)
 
 [Check Normalisation]()
 
-*[General Information](pages/uploads/documents/Check_normalisation_general_info.md)
-*[How to](pages/uploads/documents/Check_normalisation_howto.md)
+* [General Information](pages/uploads/documents/Check_normalisation_general_info.md)
+* [How to](pages/uploads/documents/Check_normalisation_howto.md)
 
 [Guidelines for 1st level analysis](pages/uploads/documents/Guidelines_for_1st_level.md)
 
