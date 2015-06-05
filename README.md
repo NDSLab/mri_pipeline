@@ -30,8 +30,12 @@ cd mri_pipeline
 git checkout devel
 
 # copy whole content of repository folder into your project folder
-# make sure to use the -n flag to avoid overwritting any existing scripts. You can run a 'git status' and 'git diff' to check whether you have any files that are different than the most recent version on github.
-cp -n -r . /path/to/project/folder # don't have a trailing slash for the destination folder! 
+# NOTE 1: make sure to use the -n flag to avoid overwritting any existing scripts. 
+# NOTE 2: make sure there's no trailing slash for the destination folder! 
+cp -n -r . /path/to/project/folder
+# in your project folder, run 'git status' to see which files are different
+# from the most recent version from github; and run 'git diff' to see 
+# how each file differs
 ```
 
 If you are starting a new project, simply clone into the folder where you would like to have your new project folder to be located in and rename the `mri_pipeline` folder into your project folder name (e.g. 3014030.01, following the DCCN archiving policy).
