@@ -11,7 +11,7 @@
 # usage 3:
 # 	HINT: check the output of 'find' before piping to add_suffix_nii
 #	cd path/to/project # e.g. /home/peter/projects/3014030.01
-#	find -type d -name 'run*' | xargs add_suffix_nii # run in all folders like 'run1','run2',etc.
+#	find -type d -name 'run*' | xargs add_suffix_nii.sh # run in all folders like 'run1','run2',etc.
    		
 
 
