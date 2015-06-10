@@ -23,7 +23,7 @@
 
 [Data Quality]()
 
-* [General Information](pages/uploads/documents/data quality_general info.md)
+* [General Information](pages/uploads/documents/data_quality_general info.md)
 * [How to](pages/uploads/documents/data quality_howto.md)
 * [Scripts Description](pages/uploads/documents/data quality_scripts description.md)
 
@@ -31,6 +31,44 @@
 
 * [General Information](pages/uploads/documents/Preprocessing_general info.md)
 * [How to](pages/uploads/documents/Preprocessing_howto.md)
+
+[Slice Timing]()
+
+* [General Information](pages/uploads/documents/Slice_Timing_general_info.md)
+* [How to](pages/uploads/documents/Slice_Timing_howto.md)
+
+[Coregister]()
+
+* [General Information](pages/uploads/documents/Coregister_general_info.md)
+* [How to](pages/uploads/documents/Coregister_howto.md)
+
+[Segmentation]()
+
+* [General Information](pages/uploads/documents/Segmentation_general_info.md)
+* [How to](pages/uploads/documents/Segmentation_howto.md)
+
+[Normalise]()
+
+* [General Information](pages/uploads/documents/Normalise_general_info.md)
+* [How to](pages/uploads/documents/Normalise_howto.md)
+
+[Smoothing]()
+
+* [General Information](pages/uploads/documents/Smoothing_general_info.md)
+* [How to](pages/uploads/documents/Smoothing_howto.md)
+
+[Check Normalisation]()
+
+* [General Information](pages/uploads/documents/Check_normalisation_general_info.md)
+* [How to](pages/uploads/documents/Check_normalisation_howto.md)
+
+[Guidelines for 1st level analysis](pages/uploads/documents/Guidelines_for_1st_level.md)
+
+[Guidelines for 2nd level analysis](pages/uploads/documents/Guidelines_for_2nd_level.md)
+
+[Tips for Data Visualization](pages/uploads/documents/Tips_for_Data_Visualization.md)
+
+[Extracting beta values](pages/uploads/documents/Beta_values.md)
 
 [README](../README.md)
 
