@@ -9,17 +9,21 @@
 % This is meant to be used via: 
 % qsubfeval(@CombineSubject, s, 'memreq', cfg.memreq, 'timreq', cfg.timreq);
 % ---------------------------------------------------------------
-function [outputs] = CombineSubject(subjectNumber, sessionNumber)
+function CombineSubject(subjectNumber, sessionNumber)
 	% assuming location on M-drive is like:
 	% /home/decision/petvav/projects/3014030.01/analysis_mri/1_combine/CombineSubject.m
 	% we can use this to define some variables:
     
-    % log everything written to console
-    diary(['combineSubject_s' num2str(subjectNumber) '.log'])
-    fprintf('%s - Starting combination script for subject %i\n',datestr(now),subjectNumber);
-    
-    addpath('/home/common/matlab/spm12');
     addpath('../utils'); 
+    
+    % log everything written to console
+    if ~exist('logs','dir'); mkdir('logs'); end
+    diary(['logs/combineSubject_s' num2str(subjectNumber) '.log'])
+
+    fprintf('%s - Starting combination script for subject %i\n',datestr(now),subjectNumber);
+
+    % load SPM12, incl. defaults
+    LoadSPM;
     
     % set default session number
 	if ~exist('sessionNumber','var')
@@ -27,10 +31,9 @@ function [outputs] = CombineSubject(subjectNumber, sessionNumber)
 	end
 
     % get subject specific folders, project number, etc.
-    % load meta-data, defined in /data_raw/scan_metadata.m
+    % load meta-data, defined in "subject_folder"/scan_metadata.m
     % assuming location on M-drive is like:
-    % /home/decision/petvav/projects/3014030.01/3014030.01_petvav_001_001/data_raw/scan_metadata.m
-        addpath('../utils');
+    % /home/decision/petvav/projects/3014030.01/3014030.01_petvav_001_001/scan_metadata.m
     s=GetSubjectProperties(subjectNumber,sessionNumber);
        
     % print some info (for log-file)
