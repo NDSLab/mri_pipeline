@@ -1,4 +1,4 @@
-function [mask, noise]  = getmask(imgs_headers, cfg)
+function [mask, noise]  = GetMask(DATA, config)
 %    
 % This function is able to create three mask types. Typically, Noise_corner
 % is used
@@ -9,12 +9,12 @@ function [mask, noise]  = getmask(imgs_headers, cfg)
 % Recommended by Paul Gaalman 2015-5-1: noise_corner.
 %    
 % Input: 
-% imgs_headers = volume information from smp_vol
-% cfg = spike detection information (INFO)
+%       DATA = volume information per run
+%       config = spike detection information
 %
 % Output:
-% mask = appropriate mask
-% noise = 
+%       mask = appropriate mask
+%       noise = 
 
     %Give start message
     disp('Get Mask.');
@@ -23,45 +23,43 @@ function [mask, noise]  = getmask(imgs_headers, cfg)
     %% Preallocate a mask volume
     
     % Get data from first 5 volumes   
-    for i = 1:5
-        headers(i) = imgs_headers{i};
-    end
-    image_data = spm_read_vols(headers);
+    imageData = DATA(:,:,:,1:5);
     
+
     % Get average volume information
-    average_volume = mean(image_data, 4);
-    average_volume = reshape(average_volume, size(average_volume, 1), size(average_volume, 2), size(average_volume, 3));
-    mean_intensity = mean(average_volume(:));
-    mask = zeros(size(average_volume));
+    averageVolume = mean(imageData, 4);
+    averageVolume = reshape(averageVolume, size(averageVolume, 1), size(averageVolume, 2), size(averageVolume, 3));
+    meanIntensity = mean(averageVolume(:));
+    mask = zeros(size(averageVolume));    
 
     %% Create one of three types of mask volume
     
-    if strcmp('intensity', cfg.mask_type) == 1
+    if strcmp('intensity', config.maskType) == 1
         
         % Creates mask based on typical noise*cfg.masknoise
         
-        if strcmp('inside_brain', cfg.correction_mode) == 1
-            mask(average_volume > cfg.maskint.int * mean_intensity) = 1;
-        elseif strcmp('outside_brain', cfg.maskint.mode) == 1
-            mask(average_volume <= cfg.maskint.int * mean_intensity) = 1;
+        if strcmp('inside_brain', config.maskIntensity.mode) == 1
+            mask(averageVolume > config.maskIntensity.int * meanIntensity) = 1;
+        elseif strcmp('outside_brain', config.maskIntensity.mode) == 1
+            mask(averageVolume <= config.maskIntensity.int * meanIntensity) = 1;
         else
             fprintf('\nproblem in check_spike subfunction getmask: invalid correction mode!\n')
         end
         noise = 'dummy';
         
-    elseif strcmp('noise', cfg.mask_type) == 1
+    elseif strcmp('noise', config.maskType) == 1
         
         % Creates mask based on typical noise*cfg.masknoise
         % Logic in lay peoples language: a wide circle around the brain must surely be noise.
         
-        tmp = average_volume(2:9, 2:9, :); noise(1) = mean(tmp(:));
-        tmp = average_volume(2:9, (size(average_volume, 2)-1):-1:(size(average_volume, 2)-8), :) ; noise(2) = mean(tmp(:));
-        tmp = average_volume((size(average_volume, 1)-1):-1:(size(average_volume, 1)-8), 2:9, :) ; noise(3) = mean(tmp(:));
-        tmp = average_volume((size(average_volume, 1)-1):-1:(size(average_volume, 1)-8), (size(average_volume, 2)-1):-1:(size(average_volume, 2)-8), :); noise(4) = mean(tmp(:));
+        tmp = averageVolume(2:9, 2:9, :); noise(1) = mean(tmp(:));
+        tmp = averageVolume(2:9, (size(averageVolume, 2)-1):-1:(size(averageVolume, 2)-8), :) ; noise(2) = mean(tmp(:));
+        tmp = averageVolume((size(averageVolume, 1)-1):-1:(size(averageVolume, 1)-8), 2:9, :) ; noise(3) = mean(tmp(:));
+        tmp = averageVolume((size(averageVolume, 1)-1):-1:(size(averageVolume, 1)-8), (size(averageVolume, 2)-1):-1:(size(averageVolume, 2)-8), :); noise(4) = mean(tmp(:));
         noise = mean(noise);
-        mask(average_volume <= noise * cfg.masknoise) = 1;
+        mask(averageVolume <= noise * config.masknoise) = 1;
         
-    elseif strcmp('noise_corner', cfg.mask_type) == 1
+    elseif strcmp('noise_corner', config.maskType) == 1
         
         % Take what's definetly noise: 8x8 pixels in each corner of each slice
         
@@ -74,6 +72,6 @@ function [mask, noise]  = getmask(imgs_headers, cfg)
     else
         %%                   Error message                               %%
         
-        fprintf('\nproblem in check_spike subfunction getmask: invalid mask_type!\n')
+        fprintf('\nproblem in checkSpike structure maskType: invalid mask_type!\n')
     end
 end
