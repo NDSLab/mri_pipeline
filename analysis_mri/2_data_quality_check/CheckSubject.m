@@ -1,4 +1,24 @@
 function CheckSubject(SUBJECT_NUMBER, SESSION_NUMBER)
+%
+% Checks combined fMRI data per subject on spikes and 
+%
+% Spike detection:
+% Select a small chunk of data by use of a mask to check it on spikes. A
+% spike is defined by a datapoint that is larger than 30% lager than average
+% slices.
+%
+% Movie 
+%
+% data should be nested as: 
+%       /home/group/DCCN-user-id/~/mri_pipeline-master/mri_pipeline-master_DCCN-user-id_SUBJ_NR_SESSION_NR/
+%       eg. 
+%       /home/decision/inghui/~/mri_pipeline-master/mri_pipeline-master_inghui_101_001/
+%
+% Input: 
+%       SUBJ_NR            ...unique participant number
+%       SESSION_NR         ...
+%
+
 
 diary(['logs/data_quality_check' num2str(SUBJECT_NUMBER) '.log'])
 
@@ -7,10 +27,10 @@ diary(['logs/data_quality_check' num2str(SUBJECT_NUMBER) '.log'])
 assert(ispc,'You need to run this script from a Windows machine');
 
 addpath('../utils')
-
+addpath('/home/common/matlab/spm8');
 
 % set default: session_number == 1
-if ~exist('sessionNumber','var')
+if ~exist('SESSION_NUMBER','var')
     SESSION_NUMBER=1;
 end
 
@@ -55,7 +75,7 @@ try
                     
                     %- run function
                     %-----------------
-                    data{iRun} = LoadImageData(folderImages, fileFilter, decendIntoSubfolders);
+                    [data{iRun}, volumeInfo] = LoadImageData(folderImages, fileFilter, decendIntoSubfolders);
                 end
                 
                 %- advance checkpoint
@@ -125,12 +145,66 @@ try
                 %----------------------
                 checkpoint = checkpoint + 1;
                 
-                
             case 4
                 fprintf('Starting with checkpoint %i\n', checkpoint);
-                %%% checkpoint 4 - detect and optionally remove spikes
+                %%% Checkpoint 4 - detect and optionally remove spikes
+
+                %- set spike-script settings
+                configSpike.spikeThreshold          = 0.3;                  % fractional deviation of slice mean that qualifies as a 'spike' 0.1 = 10%
+                configSpike.mode                    = 'remove';              % mode: 'check' or 'remove'. Remove replaces affected volume by mean of the adjecent slices.
+                configSpike.prefixSpike             = 'n';                   % if you want a prefix for your new images, please say so. Beware however, this might intervene with your original functional prefix!
+                configSpike.maskType                = 'noise_corner';       % 'noise' makes mask from noise level, 'noise_corner' takes image corners, 'intensity' simple intensity mask
+                configSpike.masknoise               = 2;                    % if mask_type 'noise': creates mask based on typical noise*cfg.masknoise
+                configSpike.maskIntensity.int       = 0.3;                  % if mask_type 'intensity': creates mask based on intensity relative to volume mean: 1.0=mean of whole volume, 0.1=10% of mean
+                configSpike.maskIntensity.fix       = ('yes');              % if mask_type 'intensity': 'yes' creates fixed mask from first 5 volumes, 'no' mask recalculation for each volume
+                configSpike.maskIntensity.mode      = 'outside_brain';      % if mask_type 'intensity':'inside_brain' or 'outside_brain' spike-intensity detection
+                configSpike.selectionMethod         = 'timecourseAverage';  % Select spikes based on 'timecouseAverage' or 'previousVolume;
+                configSpike.spikeDir                = folderOutput;
+                configSpike.runmode                 = ('check');
+
+                checkpoint = checkpoint + 1;
                 
-                % TODO: add Inge's code here
+            case 5
+                
+                fprintf('Starting with checkpoint %i\n', checkpoint);
+                %%% Checkpoint 5 - detect and optionally remove spikes
+
+                if strcmp('remove', configSpike.mode);
+                    fprintf('Checking and removing spikes from images.\n');
+                elseif strcmp('check', configSpike.mode);
+                    fprintf('Checking for spikes in images.\n');
+                else 
+                    fprintf('Unidentified configSpike.mode.\n');
+                end
+              
+                for iRun = 1:nRuns
+
+                    % Create and save mask
+                    [MASK, noise] = GetMask(data{iRun}, configSpike);
+                    SaveMask(MASK,volumeInfo,configSpike,iRun);
+
+                    % Determine demonstrate and save timecourse slice averages
+                    [sliceAverages, newImgsInfo] = SliceAverageDuplicate(data{iRun}, volumeInfo, MASK, configSpike);
+                    histogram = ShowSaveSliceAvg(sliceAverages, volumeInfo, configSpike, iRun);
+                    set(histogram,'Color','w');
+                    figureName = fullfile(folderOutput, sprintf('CheckSpike_run%i.png',iRun));
+                    saveas(histogram, figureName,'png');
+
+                    % Detect spikes and safe file
+                    [affectedVolumeSlice, affectedVolumes] = DetectSpikes(sliceAverages, configSpike);
+                    SaveSpikefile(affectedVolumeSlice, affectedVolumes, data{iRun}, configSpike, iRun);
+
+                    % If spikes have been detected and we were in 'check' mode before: recall with remove flag
+                    if ( ~isempty(find(affectedVolumeSlice ~= 0, 1))  && strcmp('remove', configSpike.mode) == 1 )
+
+                        %Remove spikes and save new_imgs_headers adjusted data
+                        RemoveSpikes(affectedVolumeSlice, newImgsInfo);
+                    end
+
+                    %Close slice averages image
+                    close(histogram);
+
+                end
                 
                 % no need to save workspace - work_missing == 0
                 checkpoint = checkpoint + 1;
