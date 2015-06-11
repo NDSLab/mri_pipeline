@@ -1,4 +1,4 @@
-function [affected_vol_slc, affected_vol] = detect_spikes(slice_averages, cfg)
+function [affectedVolSlice, affectedVol] = DetectSpikes(SLICE_AVERAGE, config)
     %
     % This function detects spikes in volumes and slices. It has two modes
     % of operation: 
@@ -10,55 +10,53 @@ function [affected_vol_slc, affected_vol] = detect_spikes(slice_averages, cfg)
     %   Select a slice if its value is larger than: threshold * mean(slice over all volumes)     
     %
     % Input
-    % slice averages = averages from slcavg_dupl.m
-    % cfg = configuration information (INFO)
+    %       SLICE_AVERAGE = averages from slcavg_dupl.m
+    %       config = configuration information (INFO)
     %
     % Output
-    % affected_vol_slc = matrix with size (volumes, slices), 1 is affected
-    % slice
-    % affected_vol = vector with length of all volumes. 1 is affected
-    % volume.    
+    %       affectedVolSlice = matrix with size (volumes, slices), 1 is affected slice
+    %       affectedVol = vector with length of all volumes. 1 is affected volume.    
 
 
     %Give message
     disp('Detecting spikes')
    
     %Preallocate affected volume information
-    affected_vol_slc  = zeros (size(slice_averages, 1), size(slice_averages, 2));
-    affected_vol = zeros (size(slice_averages, 1),1);
-    mean_slice_averages = mean(slice_averages, 1);
+    affectedVolSlice  = zeros(size(SLICE_AVERAGE, 1), size(SLICE_AVERAGE, 2));
+    affectedVol = zeros (size(SLICE_AVERAGE, 1),1);
+    meanSliceAverages = mean(SLICE_AVERAGE, 1);
 
     %%                    Detect spikes                                  %%
     
     %Per volume
-    for volume = 2:size(slice_averages, 1)-1
+    for volume = 2:size(SLICE_AVERAGE, 1)-1
         
         %Count how many spikes per volume, 1+ is problematic!
         count = 0;
         
         %Per slice
-        for slice = 1:size(slice_averages, 2)
+        for slice = 1:size(SLICE_AVERAGE, 2)
             
             % Select slices based on previous volume
-            if strcmp('previous_vol', cfg.base_cor_on) == 1
-                if ((slice_averages(volume, slice) - slice_averages(volume-1,slice))  > cfg.spike_threshold * slice_averages(volume-1, slice) )
-                    affected_vol_slc(volume, slice) = 1;
-                    affected_vol(volume) = 1;
+            if strcmp('previousVolume', config.selectionMethod) == 1
+                if ((SLICE_AVERAGE(volume, slice) - SLICE_AVERAGE(volume-1,slice))  > config.spikeThreshold * SLICE_AVERAGE(volume-1, slice) )
+                    affectedVolSlice(volume, slice) = 1;
+                    affectedVol(volume) = 1;
                     count = count +1;
                 end
              
             % Select affected slices 
-            elseif strcmp('timecourse_avg', cfg.base_cor_on) == 1
+            elseif strcmp('timecourseAverage', config.selectionMethod) == 1
                 
                 %Select affected slices:
-                if ((slice_averages(volume, slice) - mean_slice_averages(1, slice) )  > cfg.spike_threshold * slice_averages(volume-1, slice) )
-                    affected_vol_slc(volume, slice) = 1;
-                    affected_vol(volume) = 1;
+                if ((SLICE_AVERAGE(volume, slice) - meanSliceAverages(1, slice) )  > config.spikeThreshold * SLICE_AVERAGE(volume-1, slice) )
+                    affectedVolSlice(volume, slice) = 1;
+                    affectedVol(volume) = 1;
                     count = count +1;
                     
                 end
             else
-                fprintf('\nproblem in spike_check subfunction detect_spikes: invalid correction mode!\n')
+                fprintf('\nproblem in spike_check subfunction DetectSpikes: invalid correction mode!\n')
             end
         end
         

@@ -1,29 +1,37 @@
-function h = show_save_slice_avg(slice_averages, imgs_headers, cfg, iRun)
+function linegraph = ShowSaveSliceAvg(SLICE_AVERAGES, VOLUME_INFO, config, iRun)
 %
-% Show slice averages and save the graphs
+% This function shows slice averages in a histogram and save the graph.
 %
-%
+% input
+%       sliceAverages:
+%       DATA: 
+%       config:
+%       iRun:
+%       
+% output
+%       figure: the produced plot of normalized values of slices
+
     %%                      Save slice averages                          %%
     
     %Make nwe filename
-    [~, ~, xt] = fileparts(deblank(imgs_headers{1}.fname));
-    fullname = fullfile(cfg.spike_dir,[sprintf('CheckSpike_SliceAvg_run%i',iRun) xt]);
+    [~, ~, xt] = fileparts(deblank(VOLUME_INFO{1}.fname));
+    fullname = fullfile(config.spikeDir,[sprintf('CheckSpike_SliceAvg_run%i',iRun) xt]);
     
     %Save data
-    save(fullname,'slice_averages');
+    save(fullname,'sliceAverages');
     
     %%                      Show slice averages                          %%
     
     %Preallocate normalized slc_avg
-    norm_slc_avg = zeros(size(slice_averages));
+    normSliceAverage = zeros(size(SLICE_AVERAGES));
     
     %Calculate how far a slice is in percentages from the mean.
-    for i = 1:size(slice_averages, 2)
-        norm_slc_avg(:,i) = slice_averages(:,i) / mean(slice_averages(:,i));
+    for i = 1:size(SLICE_AVERAGES, 2)
+        normSliceAverage(:,i) = SLICE_AVERAGES(:,i) / mean(SLICE_AVERAGES(:,i));
     end
     
     % Make plot
-    h = figure(3); clf; plot(norm_slc_avg); line((1:size(slice_averages, 1)), (1+cfg.spike_threshold));
-    v = axis; if v(4) < (1+cfg.spike_threshold*1.5); v(4) = (1+cfg.spike_threshold*1.5); end; axis(v);
+    linegraph = figure(3); clf; plot(normSliceAverage); line((1:size(SLICE_AVERAGES, 1)), (1+config.spikeThreshold));
+    v = axis; if v(4) < (1+config.spikeThreshold*1.5); v(4) = (1+config.spikeThreshold*1.5); end; axis(v);
 
 end
