@@ -15,6 +15,7 @@
 #	find -type d -name 'run*' | xargs add_suffix_nii.sh # run in all folders like 'run1','run2',etc.
 
 
+echo "adding suffix to .nii files"
 
 function add_suffix {
 # get folder name of pwd, without full path 

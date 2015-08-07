@@ -20,6 +20,6 @@ dirDdrive = strrep(dirMdrive, [homePath '/'], '');
 % call shell script to handle the actual access & copying
 % -------------------------------------------------------------------------
 unixCommand = sprintf('copyFromDDrive %s %s %s', WINDOWS_PC_ID, dirDdrive, dirMdrive);
-[~, ~] = unix(unixCommand); % suppress file listings
+unix(unixCommand); % suppress file listings
 
 end

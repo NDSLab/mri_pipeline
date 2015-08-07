@@ -134,7 +134,12 @@ for iRun=nRuns:-1:1
     weight = zeros(dim(1),dim(2),dim(3),nEchoes);
     
     for j=1:nEchoes
-        tSNR(:,:,:,j) = mean(volume5D(:,:,:,:,j),4)./std(volume5D(:,:,:,:,j),0,4);
+        % for some voxels, the signal can be continuosly zero. We need to
+        % keep the tSNR at zero (by setting only those values where it's
+        % larger than zero):
+        tmp =  mean(volume5D(:,:,:,:,j),4) ./ std(volume5D(:,:,:,:,j),0,4);
+        tmp(isnan(tmp)) = 0; % we obtain NaN if above was "0/0", so we set it to zero
+        tSNR(:,:,:,j) = tmp;
         CNR(:,:,:,j) = tSNR(:,:,:,j) * TE(j);
     end
     
@@ -142,6 +147,10 @@ for iRun=nRuns:-1:1
     
     for j=1:nEchoes
         weight(:,:,:,j) = CNR(:,:,:,j) ./ CNRTotal;
+        weight(isnan(weight)) = 0; % above line could produce NaN if "0/0". We set that weight to zero.
+    end
+    if any(isnan(weight(:)))
+       fprintf('ERROR: NaN occurred in weights calculation\n'); 
     end
     weights{iRun} = weight;
 end

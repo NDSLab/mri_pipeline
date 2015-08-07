@@ -1,3 +1,13 @@
+% -------------------------------------------------------------------------
+% function RemoveCombinedData( SUBJECT_NUMBER, SESSION_NUMBER)
+% 
+%   removes files 'crf*.nii' from you M-drive
+% ------------------------------------------------------------------------- 
+% 
+% Use this function once you have finished preprocessing the combined data
+% and you are confident the result is fine.
+% 
+% ------------------------------------------------------------------------- 
 function RemoveCombinedData( SUBJECT_NUMBER, SESSION_NUMBER)
 
 % set default session number
@@ -20,7 +30,7 @@ addpath(sprintf('/%s/utils',fullfile(pathParts{1:(end-1)})));
 s = GetSubjectProperties(SUBJECT_NUMBER, SESSION_NUMBER);
 
 % remove all 'crf*.nii' files from the data_combined
-unixCommand = sprintf('find %s -name ''crf*.nii'' -delete -print', s.dataCombinedPath);
+unixCommand = sprintf('find %s -name ''crf*.nii'' -delete -print', s.dataPreprocessedPath);
 [~, cmdout ] = unix(unixCommand);
 
 % log deleted files

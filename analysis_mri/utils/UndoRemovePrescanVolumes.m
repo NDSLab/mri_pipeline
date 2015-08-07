@@ -47,7 +47,7 @@ nRuns = length(s.runSeries);
 
 for iRun = 1:nRuns
     % go to folder with data preprocessed images, of a run
-    folderData = sprintf('%s/run%i',s.dataCombinedPath, iRun);
+    folderData = sprintf('%s/run%i',s.dataPreprocessedPath, iRun);
     cd(folderData);
 
     % unzip archive

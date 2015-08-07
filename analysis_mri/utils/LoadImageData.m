@@ -1,6 +1,8 @@
-%%% [data volumesInfo] = LoadImageData(imageFolder, fileFilter, descendIntoSubfolders) 
+% -------------------------------------------------------------------------
+% function LoadImageData(imageFolder, fileFilter, descendIntoSubfolders) 
 %   loads all image data into an 4D array. 
 % 
+% -------------------------------------------------------------------------
 %   Input:
 %       imageFolder     ... String. Folder where images are located
 %       fileFilter      ... RegularExpression. SPM file filter 
@@ -12,6 +14,7 @@
 %                           by Z by Time)
 %       volumesInfo     ... array of info on images, as return by spm_vol. 
 % 
+% -------------------------------------------------------------------------
 function [data, volumesInfo] = LoadImageData( FOLDER_IMAGES, FILE_FILTER, DESCEND_INTO_SUBFOLDERS)
 
 LoadSPM(); % in ../utils

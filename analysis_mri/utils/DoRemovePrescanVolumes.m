@@ -53,7 +53,7 @@ for iRun = 1:nRuns
     fprintf('Handling files of run %i\n', iRun);
     
     % go to folder with data preprocessed images, of a run
-    folderData = sprintf('%s/run%i',s.dataCombinedPath, iRun);
+    folderData = sprintf('%s/run%i',s.dataPreprocessedPath, iRun);
     cd(folderData);
     
     % skip if already a prescans zip file exists

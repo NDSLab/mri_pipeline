@@ -12,13 +12,13 @@ function AddRunNumberAsSuffixToNiiFiles(folder)
 % figure out the location of the 'utils' folder - also where this function
 % is expected to be
 fullpathFilename = mfilename('fullpath');
-[path, ~, ~] = fileparts(fullpathFilename);
+[utilsPath, ~, ~] = fileparts(fullpathFilename);
 
 oldFolder = pwd;
 cd(folder);
 
 % use bash script to append run number to .nii files
-unixCommand = sprintf('find -type d -name ''run*'' | xargs %s/add_suffix_nii.sh', path);
+unixCommand = sprintf('find -type d -name ''run*'' | xargs %s/add_suffix_nii.sh', utilsPath);
 unix(unixCommand);
 
 cd(oldFolder);

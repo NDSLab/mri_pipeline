@@ -1,4 +1,18 @@
 function filesPrefixed = AddPrefix(filenames, prefix)
+% AddPrefix(filenames, prefix) takes list of files (fullpath) and adds a
+% prefix to each file.
+% 
+% Input:
+%   filenames           ... char-matrix or cell-array of char-matrices,
+%                           where each line of the char-matrix is a
+%                           full-path filename
+%   prefix              ... string. desired prefix, e.g. 'c'
+% 
+% Output:
+%   filesPrefixed       ... same as filenames, but with files prefixed with
+%                           'prefix'
+% 
+
 if iscell(filenames)
     for i=numel(filenames):-1:1
         tmp = filenames{i};

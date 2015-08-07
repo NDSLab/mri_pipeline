@@ -1,6 +1,7 @@
 function [workingDir, neededToCreateDir] = SetUpWorkingDir(emergencyWorkingPath)
+
 % define a working directory
-j = get_jobinfo();
+j = GetJobinfo();
 if j.workingDir
     % use the working directory already created by prologue script
     workingDir = j.workingDir;
@@ -10,6 +11,11 @@ else
     try
         workingDir = sprintf('/data/%s/%s',j.username,j.jobid);
         mkdir(workingDir)
+        if exist(workingDir,'dir')
+            fprintf('SetUpWorkingDir: working directory succesfully created using Mablab');
+        else
+            error('SetUpWorkingDir: mkdir did not work on /data');
+        end
     catch
         % if we cannot create '/data/$user/$jobinfo', then use
         % emergencyWorkingPath

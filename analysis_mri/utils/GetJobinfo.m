@@ -1,4 +1,4 @@
-function jobinfo = get_jobinfo()
+function jobinfo = GetJobinfo()
 %GET_JOBID provide info related to torque job
 % 
 % returns a structure with the following fields
@@ -26,7 +26,7 @@ workingDir = sprintf('/data/%s/%s',jobinfo.username,jobinfo.jobid);
 if (exist(workingDir,'dir'))
     jobinfo.workingDir = workingDir;
 else 
-    fprintf('WARNING: working directory %s NOT found\n', workingDir);
+    fprintf('GetJobinfo: working directory %s NOT found\n', workingDir);
     jobinfo.workingDir = false;
 end
 

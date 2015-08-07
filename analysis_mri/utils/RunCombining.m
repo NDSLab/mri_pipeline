@@ -1,15 +1,19 @@
 function RunCombining(config)
-% ---------------------------------------------------------------
+%--------------------------------------------------------------------------
 % Function: RunCombing(config)
-% ---------------------------------------------------------------
 %
-% Assuming a certain folder structure, this function automatically
-% parses the information needed to run the combine scripts for the
-% subject specified by a number.
+% This function runs the all the individual steps needed for combining
+% multi-echo data for a single subject. This function should be called via
+% CombineSubject.m
 %
-% This is meant to be used via:
-% qsubfeval(@CombineSubject, s, 'memreq', cfg.memreq, 'timreq', cfg.timreq);
-% ---------------------------------------------------------------
+%--------------------------------------------------------------------------
+% 
+% Input:
+%       config                  ... struct. See below which variables are
+%                                   expected/used.
+% 
+%--------------------------------------------------------------------------
+%--------------------------------------------------------------------------
 
 % Extract expected config variables:
 %--------------------------------------------------------------------------
@@ -33,6 +37,8 @@ ARRANGE_RUNS_INTO_SUBFOLDERS = config.arrangeRunsIntoSubfolders;
 
 ADD_RUN_AS_SUFFIX = config.addRunAsSuffix;
 
+CONFIG_SPIKE_DETECTION = config.configSpike;
+
 % the script cannot handle unequal amounts of echoes: assert that each run
 % has same number of echoes
 % Note: The reason is that having different echo times for different runs,
@@ -44,7 +50,7 @@ if length(N_ECHOES)>1
     N_ECHOES=N_ECHOES(1);
 end
 
-% checkpoint 1
+% step 1
 %--------------------------------------------------------------------------
 % get list of all relevant DICOMs
 
@@ -54,17 +60,25 @@ filenamesDicoms = GetAllDicomNames(RUN_SERIES,repmat(N_ECHOES,size(RUN_SERIES)),
 % step 1.2: remove any 'dangling' volumes
 filenamesDicomsFiltered = EnforceConsistentVolumes(filenamesDicoms);
 
-% checkpoint 2
+% step 2
 %--------------------------------------------------------------------------
 % convert all DICOMs to nifti, writing results into workingDir
 filenamesNifti = ConvertDicoms(filenamesDicomsFiltered,DIR_WORKING);
 
-% checkpoint 3
+% step 3
+%--------------------------------------------------------------------------
+% check for spikes in un-combined images. Settings are simply passed down 
+CheckForSpikes(filenamesNifti,CONFIG_SPIKE_DETECTION);
+
+
+% step 4
 %--------------------------------------------------------------------------
 % combine echoes, ie create new images in workingDir + additional files
 
 % step 3.1: read Echo times from DICOMs
-tEcho = GetTE(filenamesDicomsFiltered);
+tEcho = GetTE(filenamesDicomsFiltered(1,:)); % use only first run images
+fprintf('Echo times are: '); fprintf('%d ',tEcho);
+
 
 % step 3.2: combine using PAID, writing result into working dir
 % setup config for combine function
@@ -75,7 +89,7 @@ configCombine.filenameWeights       = FILENAME_WEIGHTS;
 % run combining
 CombineEcho(filenamesNifti, tEcho, DIR_WORKING, configCombine);
 
-% checkpoint 4
+% step 5
 %--------------------------------------------------------------------------
 % copy all resulting images/all files to outputDir (depending on settings)
 
@@ -109,7 +123,7 @@ if ~strcmp(DIR_WORKING,DIR_OUTPUT) % copy only if folders are different
     end
 end
 
-% checkpoint 4
+% step 6
 %--------------------------------------------------------------------------
 % if desired, arrange files into subfolders for each run
 if ARRANGE_RUNS_INTO_SUBFOLDERS 
@@ -117,7 +131,7 @@ if ARRANGE_RUNS_INTO_SUBFOLDERS
        
        % create subfolders for each run
        folderCurrentRun = sprintf('%s/run%i',DIR_OUTPUT,iRun);
-       mkdir(folderCurrentRun);
+       [~,~,~]=mkdir(folderCurrentRun);
     
        % move all combined files into subfolder
        % infer filenames of combined files: they are the first-echo
@@ -155,10 +169,8 @@ if ARRANGE_RUNS_INTO_SUBFOLDERS
        unixCommand = sprintf('mv %s/%s %s', DIR_OUTPUT, filenameMotionParamters, folderCurrentRun);
        unix(unixCommand);
     end   
-    
-    
-    
-    disp('done rearranging')
+        
+    fprintf('done rearranging')
 end
 
 if ADD_RUN_AS_SUFFIX

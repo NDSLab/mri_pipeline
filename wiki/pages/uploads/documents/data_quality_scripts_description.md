@@ -29,3 +29,6 @@ This script also plots the intensity per volume and per slice. For an example, c
 ![Check spike] (mri_pipeline/wiki/pages/uploads/images/spike_runwise.jpg)
 
 Again, volume number is on the x-axis, and every line is a different slice. In this graph, the intensity of the first slice of the first volume is set to y = 1. There is a dotted line at y = 1.3, which is the spike threshold. If any of the colored lines pass the threshold, a spike has occurred. This should not happen often, certainly not more than once during the same scan session. If you see multiple spikes for one participant, or if you see spikes for a couple of participants in a row, contact Paul. 
+
+
+http://practicalfmri.blogspot.nl/2012/05/rare-intermittent-epi-artifacts-spiking.html

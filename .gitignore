@@ -42,3 +42,7 @@ Thumbs.db
 # Temporay files #
 ###################
 *~
+
+# behavioral analysis folder
+#############################
+analysis_behavior/

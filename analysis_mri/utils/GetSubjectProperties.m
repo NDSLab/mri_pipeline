@@ -16,10 +16,11 @@ if ispc %on windows, domain might be part of whoami result
     end
 end
 
-out.subjectFolder       = sprintf('%s%s_%s_%03d_%03d', out.projectFolder, out.projectNumber,out.userName,subjectNumber,sessionNumber);
-out.dataRawPath         = sprintf('%s/data_raw',out.subjectFolder);
-out.dataCombinedPath    = sprintf('%s/data_combined',out.subjectFolder); %combined data folder for all subjects - here, the combined data will be saved
-out.dataStructuralPath  = sprintf('%s/data_structural',out.subjectFolder); % here, the structural data will be saved
+out.subjectFolder        = sprintf('%s%s_%s_%03d_%03d', out.projectFolder, out.projectNumber,out.userName,subjectNumber,sessionNumber);
+out.dataRawPath          = sprintf('%s/data_raw',out.subjectFolder);
+out.dataPreprocessedPath = sprintf('%s/data_preprocessed',out.subjectFolder); % here, combined and preprocessed data folder will be saved
+out.dataStructuralPath   = sprintf('%s/data_structural',out.subjectFolder); % here, the structural data will be saved
+out.folderDataQualityChecks = sprintf('%s/data_quality_checks',out.subjectFolder); % here, the output of data quality check scripts will be written
 out.subjectSettingsFile = [out.subjectFolder '/scans_metadata.m'];
 
 % load subject scan metadata

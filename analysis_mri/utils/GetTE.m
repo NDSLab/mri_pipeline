@@ -1,7 +1,7 @@
 function TE = GetTE(FILENAMES)
 % ------------------------------------------------------------------
 %
-% Get T_Echo from DICOM headers
+% Get T_Echo from DICOM headers of first files in cell-array.
 %
 % Input:
 %   FILENAMES       ... cell-array of filenames of DICOM files. dimensions
