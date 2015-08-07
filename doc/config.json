@@ -1,0 +1,7 @@
+{
+	"useSideMenu" : true,
+	"lineBreaks"  : "gfm",
+	"additionalFooterText" : "",
+	"anchorCharacter" : "&para",
+	"title": "MRI Preprocessing Pipeline"
+}

@@ -1,8 +1,0 @@
-#Preprocessing
-===============
-##Smoothing
----------------
-
-###Scripts Description
-
-
