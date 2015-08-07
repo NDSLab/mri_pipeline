@@ -3,12 +3,9 @@ function  out  = GetSubjectProperties(subjectNumber,sessionNumber)
 %metainformation based on assumed folder structure of project
 
 % get all path-related defaults
-[path_str,filename, extension] = fileparts(mfilename('fullpath'));
-if ispc
-    pathParts = strsplit(path_str,'\');
-else
-    pathParts = strsplit(path_str,'/');
-end
+% this assumes this file is located in 'utils' subfolder
+[path_str, ~, ~] = fileparts(mfilename('fullpath'));
+pathParts = strsplit(path_str,filesep);
 out.projectFolder = sprintf('%s/',pathParts{1:end-2});  % has trailing '/'
 out.projectNumber = pathParts{end-2};
 [~, userName] = system('whoami'); out.userName=userName(1:end-1); % system('whoami') contains trailing \n
@@ -19,9 +16,10 @@ if ispc %on windows, domain might be part of whoami result
     end
 end
 
-out.subjectFolder=sprintf('%s%s_%s_%03d_%03d', out.projectFolder, out.projectNumber,out.userName,subjectNumber,sessionNumber);
-out.dataRawPath=sprintf('%s/data_raw',out.subjectFolder);
-out.dataCombinedPath=sprintf('%s/data_combined',out.subjectFolder); %combined data folder for all subjects - here, the combined data will be saved
+out.subjectFolder       = sprintf('%s%s_%s_%03d_%03d', out.projectFolder, out.projectNumber,out.userName,subjectNumber,sessionNumber);
+out.dataRawPath         = sprintf('%s/data_raw',out.subjectFolder);
+out.dataCombinedPath    = sprintf('%s/data_combined',out.subjectFolder); %combined data folder for all subjects - here, the combined data will be saved
+out.dataStructuralPath  = sprintf('%s/data_structural',out.subjectFolder); % here, the structural data will be saved
 out.subjectSettingsFile = [out.subjectFolder '/scans_metadata.m'];
 
 % load subject scan metadata
@@ -37,8 +35,12 @@ out.structuralSeries = structuralSeries;
 out.scannerName = scannerName;
 out.deleteUncombinedData = deleteUncombinedData;
 out.localizerSeries = localizerSeries;
-out.prepscans = prepscans;
-out.prescanSeries=prescanSeries;
 
+if exist('keepPreprocessingIntermediaryFiles','var')
+    out.keepPreprocessingIntermediaryFiles = keepPreprocessingIntermediaryFiles;
+else
+    % set default if not provided in scans_metadata.m
+    out.keepPreprocessingIntermediaryFiles = false; 
+end
 end
 

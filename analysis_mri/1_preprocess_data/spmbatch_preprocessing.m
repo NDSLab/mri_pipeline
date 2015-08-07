@@ -80,4 +80,4 @@ matlabbatch{12}.spm.spatial.smooth.data(1) = cfg_dep('Normalise: Write: Normalis
 matlabbatch{12}.spm.spatial.smooth.fwhm = [8 8 8];
 matlabbatch{12}.spm.spatial.smooth.dtype = 0;
 matlabbatch{12}.spm.spatial.smooth.im = 0;
-matlabbatch{12}.spm.spatial.smooth.prefix = 'final';
+matlabbatch{12}.spm.spatial.smooth.prefix = 's';

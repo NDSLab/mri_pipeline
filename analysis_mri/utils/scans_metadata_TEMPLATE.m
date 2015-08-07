@@ -31,6 +31,10 @@ nEchoes=4;
 % Delete subject data in uncombined data folder after combination 
 deleteUncombinedData=1;
 
+% Delete or keep intermediary files created during SPM preprocessing (e.g.
+% slice-timing, normalization, etc.)
+keepPreprocessingIntermediaryFiles = false;
+
 % Note:
 % we assume you'll analyze (first..) your sessions individually
 % Even in a multi-session studies, you're data is assumed to be stored in 
