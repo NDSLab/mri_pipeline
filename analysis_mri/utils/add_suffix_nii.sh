@@ -1,4 +1,5 @@
 #!/bin/bash
+#
 # rename files 'filename.nii' in folder 'run1' to 'filename.run1.nii' 
 # ie include the folder-name as a suffix, just before the extension '.nii'
 # 
@@ -12,7 +13,7 @@
 # 	HINT: check the output of 'find' before piping to add_suffix_nii
 #	cd path/to/project # e.g. /home/peter/projects/3014030.01
 #	find -type d -name 'run*' | xargs add_suffix_nii.sh # run in all folders like 'run1','run2',etc.
-   		
+
 
 
 function add_suffix {

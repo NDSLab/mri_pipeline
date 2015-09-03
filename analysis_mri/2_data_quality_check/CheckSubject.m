@@ -184,7 +184,7 @@ try
                     SaveMask(MASK,volumeInfo,configSpike,iRun);
 
                     % Determine demonstrate and save timecourse slice averages
-                    [sliceAverages, newImgsInfo] = SliceAverageDuplicate(data{iRun}, volumeInfo, MASK, configSpike);
+                    [sliceAverages, newImgsInfo] = SliceAverageDuplicate(data{iRun},  MASK, configSpike);
                     histogram = ShowSaveSliceAvg(sliceAverages, volumeInfo, configSpike, iRun);
                     set(histogram,'Color','w');
                     figureName = fullfile(folderOutput, sprintf('CheckSpike_run%i.png',iRun));
