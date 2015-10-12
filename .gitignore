@@ -46,3 +46,6 @@ Thumbs.db
 # behavioral analysis folder
 #############################
 analysis_behavior/
+analysis_mri/2_data_quality_check/avg152T1.nii
+analysis_mri/2_data_quality_check/mricron.ini
+analysis_mri/2_data_quality_check/normalization_batch.bat
