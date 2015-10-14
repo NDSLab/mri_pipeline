@@ -75,8 +75,8 @@ try
     config.dataDir                      = s.dataRawPath;
     config.workingDir                   = workingDir;
     config.outputDir                    = s.dataPreprocessedPath;
-    config.nWeightingVolumes            = 30;
-    config.keepIntermediaryFiles        = true;% ~s.deleteUncombinedData;
+    config.nWeightingVolumes            = s.nWeightVolumes;
+    config.keepIntermediaryFiles        = s.deleteUncombinedData;
     config.saveWeightsToFile            = true;
     config.filenameWeights              = 'CombiningWeights';
     config.arrangeRunsIntoSubfolders    = true;
@@ -87,8 +87,7 @@ try
     % ../utils/CheckForSpikes.m to see what they do in detail and what
     % configurations are possible
     config.configSpike.spikeThreshold           = 0.3;                  % fractional deviation of slice mean that qualifies as a 'spike' 0.1 = 10%
-    config.configSpike.prefixSpike              = 'd';                  % if you want a prefix for your new images, please say so. Beware however, this might intervene with your original functional prefix!
-    config.configSpike.maskSize                 = 8;                    % will be used to pick (n x n) square in each corner of a slice, for masking
+    config.configSpike.maskSize                 = 8;                    % number of voxels - will be used to pick (n x n) square in each corner of a slice, for masking
     config.configSpike.detectionMethod          = 'timecourseAverage';  % Select spikes based on 'timecourseAverage' or 'previousVolume; cf ../utils/DetectSpikes.m for details
     config.configSpike.outputDir                = s.folderDataQualityChecks; % folder where output files (timeseries plots and copies of spike-containing volumes will be written
     config.configSpike.filenamePlotBase         = 'sliceAverages';       % this will be used to create plot filenames, by appending run and echo number

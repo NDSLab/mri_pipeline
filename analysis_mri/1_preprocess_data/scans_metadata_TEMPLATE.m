@@ -1,3 +1,7 @@
+% The following is used to identify all dicom files, coming from a scanner
+scannerName={'Skyra','Avanto','Trio'}; % these are valid options
+scannerName = scannerName{1}; % pick the one applying by setting the index
+
 % Series Number of Structural files
 % The series number of your structural scans (see Print List). Look for the
 % series number of t1_mprage_sag (typically 192 scans).
@@ -12,18 +16,19 @@ runSeries=[10 15 20];
 % integer 
 nEchoes=4; 
 
+
+
 % Delete uncombined nifti data folder after combination 
 % if "true", this will delete the niftis corresponding to the raw data (raw
 % DICOMs are not affected by this setting), which are used for combining.
+% This is used in CombineSubject.m
 deleteUncombinedData = true;
 
 % Delete or keep intermediary files created during SPM preprocessing (e.g.
 % slice-timing, normalization, etc.)
+% This is used in PreprocessSubject.m
 keepPreprocessingIntermediaryFiles = false;
 
-% The following is used to identify all dicom files, coming from a scanner
-scannerName={'Skyra','Avanto','Trio'}; % these are valid options
-scannerName = scannerName{1}; % pick the one applying by setting the index
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% BELOW: Only needs editing if not following group-defaults

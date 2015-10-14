@@ -44,5 +44,5 @@ else
     % set default if not provided in scans_metadata.m
     out.keepPreprocessingIntermediaryFiles = false; 
 end
-end
 
+end
