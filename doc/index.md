@@ -5,3 +5,5 @@ This wiki describes how to use the preprocessing pipeline of [our group](http://
 See the [Getting Started](pages/howto_getting_started.md) to get going as soon as possible.
 
 The [Documentation](pages/doc_overview.md) describes in detail what the scripts are doing and explains why the specific steps were chosen.
+
+Note: Use Matlab 2014a or newer.
