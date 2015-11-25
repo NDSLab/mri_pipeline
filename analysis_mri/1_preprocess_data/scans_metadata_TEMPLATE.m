@@ -29,6 +29,11 @@ deleteUncombinedData = true;
 % This is used in PreprocessSubject.m
 keepPreprocessingIntermediaryFiles = false;
 
+% How many images do you have per run - for one Echo? 
+% If present these numbers will be used to check whether you have all the 
+% expected images in your folders. 
+% See analysis_mri/2_data_quality_check/CheckNumberImages.m
+nVolumes = [383 382 410];
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% BELOW: Only needs editing if not following group-defaults

@@ -60,23 +60,36 @@ Do the following steps:
 2. Open it up and change all the variables based on that subject's info on the "Print List.. " document. 
 Make sure you have the right series numbers for functional and structural scans, as well as the number of echoes. All scripts for preprocessing use these files, so be sure its information is correct.
 
-### Installing bash scripts for torque jobs ###
+### Preparing shell scripts ###
+
+Although the majority of this pipeline is done by Matlab functions, a few tasks - notably moving files - is handled directly by shell scripts. You need to make sure they are ready to be used. 
+
+There are multiple shell scripts within the `analysis_mri/utils` folder. You should make sure that 1) they are executable, and 2) they have the correct [end-of-line](http://superuser.com/questions/374028/how-are-n-and-r-handled-differently-on-linux-and-windows). 
+
+#### Ensuring scripts are executable ####
+
+Open a konsole and change directory to the `analysis_mri/utils` folder. Once in that folder, you can simply run the following command to make all shell scripts executable (they all finish in `.sh`)
+
+```bash
+chmod +x *.sh
+```
+
+#### End-of-Line #### 
+
+To ensure you have linux EOLs, you can do the following for the shell scripts. On Windows, open the files in Notepad++. If in the lower right corner it says "Dos\Windows" this is the issue. Simply go to *Edit* -> *EOL Conversion* -> *Unix&
+
+
+#### torque prologue/epilogue scripts #### 
 
 To run the torque batch scripts, you need to "install" two bash scripts. These scripts enable the matlab jobs to use the local hard disks which means that intermediary files will not be written to your M-drive (per default). This should ensure that you'll have fewer quota problems.
 
 1. create a `bin` folder at the top of your M-drive if you don't have one yet, ie at `~/bin`. 
 	(In the shell, running `ls ~/bin` should not throw an error.)
 2. From the `analysis_mri/utils` folder, copy the `torque_epilogue.sh` and `torque_prologue.sh` files into the `bin` folder. 
-	To make them executable, you can run the following commands from a bash shell
-	```bash
-	chmod +x ~/bin/torque_epilogue.sh
-	chmod +x ~/bin/torque_prologue.sh
-	```
 	(In the shell, running `ls ~/bin/torque_epilogue.sh ~/bin/torque_prologue.sh` should not through an error.)
 
-Hint:
-If you get error messages related to those scripts (e.g. Matlab logs saying it had to create the woking directories itself, instead of finding them), this might be due to [EOL issues](http://superuser.com/questions/374028/how-are-n-and-r-handled-differently-on-linux-and-windows). 
-To solve that, just ensure you have linux EOLs. On Windows, open the files in Notepad++. If in the lower right corner it says "Dos\Windows" this is the issue. Simply go to *Edit* -> *EOL Conversion* -> *Unix&
+Any scripts located in `~/bin` are accessible from any folder in the konsole.
+
 
 ### Setting up SPM pipeline batch job ###
 
@@ -89,6 +102,8 @@ First, you need to combine your data by running in Matlab (the `1` is for subjec
 CombineSubject(1)
 ```
 This will combine data and create a `data_preprocessed` folder inside the subject folder. It will also create a `data_quality_checks` folder where the output of the [spike detection script](doc_spike_detection.md) will be written (spikes will only be detected, but not removed). In addition, the work is logged inside a textfile in the new folder `1_preprocessed/logs`.
+
+At this point, you could check whether you have the correct number of images for each run. You can check the number on the 'Print List..' sheet (the one you used for `scans_metadata.m`): Look at the number of volumes for echo of a run. The smallest number is the number of images you should have. Say you have four echos, with echo one to three having 385 volumes, and the fourth echo 384 volumes. Than you should have 384 combined images in your subject's folder for that run. 
 
 Now, you need to adapt the SPM batch scripts which are used for preprocessing. For this, start SPM12 by typing in Matlab:
 ```matlab
@@ -119,9 +134,9 @@ Note: The SPM Batch Editor is quite cumbersome: it does not allow you to drag&dr
 
 The rest of the settings should be fine. 
 
-Once you are done making changes, the best is to open up the source code from the editor: Select *View m-code..*  and right-click to select all. Now, copy-paste this code into `spm_batch_preprocessing.m` and save the file. 
+Once you are done making changes, the best is to open up the source code from the editor: Select *View m-code..*  and right-click to select all. Now, copy-paste this code into `spmbatch_preprocessing.m` and save the file. 
 
-If you want to test-run your batch using the SPM GUI, you need to first convert the structural DICOM images to Nifti format, using `spm_batch_structural.m`. Otherwise, you can run both steps in one go by typicing in Matlab:
+If you want to test-run your batch using the SPM GUI, you need to first convert the structural DICOM images to Nifti format, using `spmbatch_structural.m`. Otherwise, you can run both steps in one go by typicing in Matlab:
 ```matlab
 PreprocessSubject(1)k
 ```

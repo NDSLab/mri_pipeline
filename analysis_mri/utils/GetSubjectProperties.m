@@ -36,7 +36,10 @@ out.runSeries = runSeries;
 out.structuralSeries = structuralSeries;
 out.scannerName = scannerName;
 out.deleteUncombinedData = deleteUncombinedData;
-out.localizerSeries = localizerSeries;
+
+if exist('nVolumes','var')
+    out.nVolumes = nVolumes;
+end
 
 if exist('keepPreprocessingIntermediaryFiles','var')
     out.keepPreprocessingIntermediaryFiles = keepPreprocessingIntermediaryFiles;

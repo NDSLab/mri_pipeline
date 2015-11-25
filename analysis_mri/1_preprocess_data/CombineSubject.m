@@ -76,7 +76,7 @@ try
     config.workingDir                   = workingDir;
     config.outputDir                    = s.dataPreprocessedPath;
     config.nWeightingVolumes            = s.nWeightVolumes;
-    config.keepIntermediaryFiles        = s.deleteUncombinedData;
+    config.keepIntermediaryFiles        = ~s.deleteUncombinedData;
     config.saveWeightsToFile            = true;
     config.filenameWeights              = 'CombiningWeights';
     config.arrangeRunsIntoSubfolders    = true;

@@ -41,6 +41,10 @@ assert(length(N_SERIES) == nFirst, 'GetAllDicomNames: Expecting FIRST_SERIES to 
 % list all DICOMs in folder
 allFiles = dir([FOLDER '/*.IMA']);
 
+if isempty(allFiles)
+    error('No DICOMS found.');
+end
+
 % use first DICOM to extract string-before-series-number, ie scanner
 % name, e.g. 'SKYRA'
 firstDicomInfo = dicominfo([FOLDER '/' allFiles(1).name]);
@@ -57,6 +61,10 @@ for iFirst = nFirst:-1:1
         
         % select all DICOMs of current series number
         filesTemp = dir([FOLDER '/*' stringBeforeSeriesNumber '.' sprintf('%.4d', currentSeriesNumber) '*.IMA']);
+        % give explicit warning if no DICOMs found
+        if isempty(filesTemp)
+            warning('Warning: No DICOMs found with series number %i', currentSeriesNumber);
+        end
         fileNames = char(zeros(length(filesTemp),length(filesTemp(1).name)+2));
         for i=1:size(fileNames ,1)
             fileNames (i,1:length(filesTemp(i).name)) = filesTemp(i).name;

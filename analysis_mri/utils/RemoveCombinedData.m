@@ -35,7 +35,7 @@ unixCommand = sprintf('find %s -name ''crf*.nii'' -delete -print', s.dataPreproc
 
 % log deleted files
 fprintf('following files where deleted:\n');
-fpritnf('%s', cmdout);
+fprintf('%s', cmdout);
 
 
 end
