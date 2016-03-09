@@ -12,7 +12,7 @@ function jobinfo = GetJobinfo()
 parts=strsplit(jobinfoString,'\n');
 
 % parse job id
-tmp=strsplit(parts{10},'qstat -f '); jobinfo.jobid = tmp{2};
+tmp=strsplit(parts{8},'qstat -f '); jobinfo.jobid = tmp{2};
 
 % append username just for ease of use
 [status tmp] = unix('whoami');
