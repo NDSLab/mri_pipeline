@@ -1,5 +1,9 @@
 # Getting Started #
 
+## Note to users
+
+Please be aware that in order for the DoMagic and the batch_DoMagic scripts to work, one has to go through all the steps outlined below. This means that even if you are only planning on preprocessing a single subject using DoMagic, you will have to define the SPM batch job if the DoMagic script is to work correctly. Happy preproccesing!
+
 ## Getting the scripts
 
 The Matlab and bash scripts are bundled within a `analysis_mri` folder and split across `analysis_mri/1_preprocessing`, `analysis_mri/2_data_quality_checks` and `analysis_mri/utils` sub-folders. 
@@ -79,7 +83,7 @@ chmod +x *.sh
 To ensure you have linux EOLs, you can do the following for the shell scripts. On Windows, open the files in Notepad++. If in the lower right corner it says "Dos\Windows" this is the issue. Simply go to *Edit* -> *EOL Conversion* -> *Unix&
 
 
-#### torque prologue/epilogue scripts #### 
+#### TORQUE prologue/epilogue scripts #### 
 
 To run the torque batch scripts, you need to "install" two bash scripts. These scripts enable the matlab jobs to use the local hard disks which means that intermediary files will not be written to your M-drive (per default). This should ensure that you'll have fewer quota problems.
 
