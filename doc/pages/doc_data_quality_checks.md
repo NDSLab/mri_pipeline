@@ -38,7 +38,7 @@ You are looking for large movements either in translation or rotation.
 
 ![](images/MovementParameters.png)
 
-What you should look for is large movement - several milimeters, *from one volume to another*. As a rule of thumb: if translation exceeds one voxel size (i.e. 3.5 mm), you should consider taking the necessary precautions. 
+What you should look for is large movement - several milimeters, *from one volume to another*. As a rule of thumb: if translation exceeds one voxel (i.e. 3.5 mm), you should consider taking the necessary precautions. 
 
 These precautions can include the following:
 
@@ -48,7 +48,7 @@ These precautions can include the following:
 
 In general, a slow movement which results in a large displacement over the whole run (say one hour) is not as bad as sudden, large movements. This is because, in principle, the slow movements will be picked up by your nuisance regressors. However,  for very large sudden movements, you might have the problem that realignment didn't work properly.
 
-Hint: There are several ways of dealing with excessive head moevement and all have some drawbacks. My current recommendation is to add regressors to the GLM for each of these points that you consider a motion spike. I would also remove the time point after as well. Some researchers would advise removing the prior time point, the spike, and the ubsequent 2 points. For large motions of 2mm, this would probably be the approach I would use. To remove multiple points, add a separate regressor for each bad point. Each regressor will be all 0s except for the point you want to remove. 
+Hint: There are several ways of dealing with excessive head movement and all have some drawbacks. My current recommendation is to add regressors to the GLM for each of these points that you consider a motion spike. I would also remove the time point after as well. Some researchers would advise removing the prior time point, the spike, and the ubsequent 2 points. For large motions of 2mm, this would probably be the approach I would use. To remove multiple points, add a separate regressor for each bad point. Each regressor will be all 0s except for the point you want to remove. 
 [Donald McLaren]
 
 ## Mean Signal plots ##
