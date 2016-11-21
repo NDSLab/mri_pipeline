@@ -38,11 +38,17 @@ You are looking for large movements either in translation or rotation.
 
 ![](images/MovementParameters.png)
 
-What you should look for is large movement - several milimeters. If a subject moved a lot, you might consider not using that subject for your analysis. 
+What you should look for is large movement - several milimeters, *from one volume to another*. As a rule of thumb: if translation exceeds one voxel size (i.e. 3.5 mm), you should consider taking the necessary precautions. 
 
-In general, a slow movement which results in a large displacement over the whole run (say one hour) is not as bad as sudden, large movements. This is because, in principle, the slow movements will be picked up by your nuisance regressors. However for sudden movements, you might have the problem that realignment didn't work properly. You can consider those bad volumes (see hint).
+These precautions can include the following:
 
-Hint: There are several ways of doing this and all have some drawbacks. My current recommendation is to add regressors to the GLM for each of these points that you consider a motion spike. I would also remove the time point after as well. Some researchers would advise removing the prior time point, the spike, and the ubsequent 2 points. For large motions of 2mm, this would probably be the approach I would use. To remove multiple points, add a separate regressor for each bad point. Each regressor will be all 0s except for the point you want to remove. 
+1. Removing the subject entirely (very drastic, often not absolutely necessary)
+2. Using movement regressors (these can include the usual 6 regressors in the GLM at the first level, or even more (e.g. taking the squared movement) (see hint below)
+3. 'Tagging' bad volumes or timepoints (using dummy regressors in the GLM) (see hint below)
+
+In general, a slow movement which results in a large displacement over the whole run (say one hour) is not as bad as sudden, large movements. This is because, in principle, the slow movements will be picked up by your nuisance regressors. However,  for very large sudden movements, you might have the problem that realignment didn't work properly.
+
+Hint: There are several ways of dealing with excessive head moevement and all have some drawbacks. My current recommendation is to add regressors to the GLM for each of these points that you consider a motion spike. I would also remove the time point after as well. Some researchers would advise removing the prior time point, the spike, and the ubsequent 2 points. For large motions of 2mm, this would probably be the approach I would use. To remove multiple points, add a separate regressor for each bad point. Each regressor will be all 0s except for the point you want to remove. 
 [Donald McLaren]
 
 ## Mean Signal plots ##
@@ -55,7 +61,7 @@ The output of this step are two plots, one with four graphs (e.g. `SignalCheck_0
 
 The upper left graph shows the mean intensity per volume, per slice. Volume number is on the x-axis, intensity on the y-axis, and every colored line is a different slice. The upper right graph shows the global signal, which is the mean intensity per image. Basically, it is the mean of the lines in the upper left graph. It is also the same as the mean curve that you can see on the scan computer during scanning. The lower panel depicts the variance of the two upper graphs.  
 
-What you are looking for is whether there are unusual changes in the signal intensity, and especially whether the global mean signal stays roughly stable (look at the y-values in the plot of the upper right corner plot). 
+Especially important is the upper right plot, depicting the mean signal intensity. What you are looking for is whether there are unusual changes in the signal intensity (there shouldn't be any), and especially whether the global mean signal stays roughly stable (it should). Absolute numbers are not important in this plot. The average signal intensity can change by a couple of percent without this being of consequence to the quality of your data. Changes from 115 to 105 are fine, changes from 115 to 50 are not.  
 
 The second plot is a histogram of signal intensities (e.g. `Histogram_020_001_run2.png`): 
 
